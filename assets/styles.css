@@ -1,0 +1,89 @@
+:root {
+  color-scheme: dark;
+  --bg: #17131e;
+  --panel: #211b2b;
+  --panel-soft: #292238;
+  --gold: #d4a94f;
+  --gold-light: #f1d99a;
+  --text: #f7f2e8;
+  --muted: #c0b8c9;
+  --line: rgba(212, 169, 79, .28);
+  --purple: #7251a1;
+  --blue: #3476b9;
+  --pink: #c64b83;
+  --green: #48956b;
+  --orange: #d17a37;
+}
+* { box-sizing: border-box; }
+html { min-height: 100%; background: var(--bg); }
+body {
+  margin: 0; min-height: 100vh; color: var(--text);
+  background: radial-gradient(ellipse at top, #30223d 0, var(--bg) 58%);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.55;
+}
+.site-header {
+  display: flex; gap: 1rem; align-items: center; justify-content: center;
+  padding: 2rem 1.25rem 1.5rem; text-align: left;
+  border-bottom: 1px solid var(--line); background: rgba(16, 12, 22, .55);
+}
+.brand-mark {
+  width: 70px; height: 70px; flex: 0 0 70px; display: grid; place-items: center;
+  border: 2px solid var(--gold); border-radius: 50%;
+  color: var(--gold-light); font: 700 2.65rem Georgia, serif;
+  box-shadow: 0 0 0 5px rgba(212,169,79,.08), inset 0 0 20px rgba(212,169,79,.12);
+}
+.brand-mark span {
+  background: linear-gradient(180deg, #e34c4c 0 16%, #e8a047 16% 32%, #e5d84f 32% 48%, #51a86a 48% 64%, #477fd2 64% 80%, #9d67c6 80% 100%);
+  background-clip: text; -webkit-background-clip: text; color: transparent;
+}
+.brand-text h1, h1, h2 { font-family: Georgia, "Times New Roman", serif; line-height: 1.2; }
+.brand-text h1 { margin: .15rem 0; font-size: clamp(1.25rem, 3vw, 1.8rem); color: var(--gold-light); }
+h2 { margin: 0 0 .8rem; font-size: clamp(1.35rem, 3vw, 1.8rem); }
+h3 { margin: .55rem 0 .3rem; font-size: 1.05rem; }
+p { margin: .45rem 0 1rem; }
+.eyebrow { margin: 0; color: var(--gold); font-size: .74rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+.subtitle { margin: .25rem 0 0; color: var(--muted); font-size: .92rem; }
+.container { width: min(900px, calc(100% - 2rem)); margin: 2rem auto; display: grid; gap: 1.1rem; }
+.panel {
+  padding: clamp(1.1rem, 4vw, 2rem); border: 1px solid var(--line); border-radius: 18px;
+  background: linear-gradient(145deg, rgba(41,34,56,.96), rgba(29,24,39,.97));
+  box-shadow: 0 12px 36px rgba(0,0,0,.15);
+}
+.intro { border-top: 3px solid var(--gold); }
+.intro h2 { margin-top: .35rem; color: var(--gold-light); }
+.status-note {
+  display: flex; align-items: flex-start; gap: .85rem; margin-top: 1.2rem; padding: 1rem;
+  border-left: 3px solid var(--orange); border-radius: 8px; background: rgba(209,122,55,.1);
+}
+.status-note strong { color: var(--gold-light); }
+.status-note p { color: var(--muted); margin: .2rem 0 0; }
+.status-icon { width: 26px; height: 26px; flex: 0 0 26px; display: grid; place-items: center; border: 1px solid var(--gold); border-radius: 50%; color: var(--gold-light); font-weight: 800; }
+.section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.section-symbol { color: var(--gold); font-size: 1.7rem; }
+.empty-state {
+  display: grid; justify-items: center; text-align: center; padding: 1.5rem;
+  border: 1px dashed var(--line); border-radius: 12px; color: var(--muted);
+}
+.empty-state p { max-width: 520px; margin-bottom: .1rem; }
+.calendar-icon { font-size: 2rem; color: var(--gold); }
+form { display: grid; gap: .55rem; }
+label { margin-top: .35rem; font-size: .9rem; font-weight: 700; }
+input, select, button {
+  width: 100%; padding: .85rem .9rem; border: 1px solid var(--line); border-radius: 10px; font: inherit;
+}
+input, select { color: var(--text); background: #17131e; }
+button { margin-top: .7rem; color: #fff7e6; background: #59417c; border-color: #7c60a6; font-weight: 800; }
+button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-allowed; }
+.muted { color: var(--muted); }
+.small { margin-top: 1rem; font-size: .82rem; }
+.privacy-note { padding: .25rem .5rem; color: var(--muted); font-size: .86rem; }
+.privacy-note strong { color: var(--gold-light); }
+.site-footer { padding: 1.5rem 1rem 2rem; text-align: center; border-top: 1px solid var(--line); color: var(--muted); font-size: .85rem; }
+.site-footer p { margin: .3rem; }
+.site-footer strong { color: var(--gold-light); }
+@media (max-width: 520px) {
+  .site-header { align-items: flex-start; padding-top: 1.4rem; }
+  .brand-mark { width: 54px; height: 54px; flex-basis: 54px; font-size: 2.2rem; }
+  .container { width: calc(100% - 1rem); margin: 1rem auto; }
+}
