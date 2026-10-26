@@ -87,3 +87,14 @@ Não habilitar reservas públicas enquanto qualquer teste crítico estiver pende
 | 26/10/2026 | GitHub Actions — workflow 95 | APROVADO | Run `40393635764` concluiu com `success`. Job `Verificação estática Deno`: testes de contrato de validação, sintaxe do frontend, verificações para manter o envio público bloqueado, sintaxe dos smoke tests e `deno check` das três Edge Functions concluíram com sucesso. Evidência: https://github.com/dihjanssencoelho-svg/ReservasSenhasTEU7VD/actions/runs/40393635764. Isso valida testes estáticos/unitários, não substitui smoke HTTP nem homologação de runtime. |
 
 | 26/10/2026 | Conferência das funções implantadas e logs recentes | Parcial | Supabase confirma `criar-reserva`, `listar-reservas` e `admin-reservas` ativas na versão 3. A consulta somente leitura aos logs das Edge Functions não encontrou eventos recentes associados a `criar-reserva` ou Turnstile; isso não comprova falha, apenas ausência de evidência de chamadas. Os testes HTTP negativos ainda precisam ser executados por runner com rede e variáveis de homologação; não foram feitas chamadas de mutação. |
+
+## Correção de evidências — estado vigente em 26/10/2026
+
+Este bloco prevalece sobre registros históricos anteriores que descrevem Pages como desativado, não publicado ou sem confirmação. Esses registros foram mantidos como histórico da sequência de configuração, não como estado atual.
+
+- **Publicação frontend:** o proprietário confirmou que `https://dihjanssencoelho-svg.github.io/ReservasSenhasTEU7VD/` abre o portal. A confirmação prova apenas acesso visual ao frontend.
+- **Escopo do domínio:** qualquer remoção/ajuste de domínio personalizado foi autorizada somente no repositório de reservas. O site institucional `siteTEU7VD` não deve ser alterado.
+- **CI estático:** workflow 95 (`40393635764`) concluiu com sucesso; testes unitários de contrato, sintaxe JavaScript/Bash e verificações Deno passaram. Isso não é um teste HTTP das funções implantadas.
+- **Backend:** as três Edge Functions estão ativas na versão 3. A existência dos nomes de segredo foi confirmada pelo proprietário, mas os valores não foram lidos nem devem ser compartilhados. Logs sem eventos recentes não comprovam sucesso nem falha do Turnstile.
+- **Bloqueio de homologação:** testes HTTP negativos e autorização por papéis ainda não foram executados por um runner com rede e variáveis de ambiente. Testes positivos que gravem reservas permanecem fora do escopo até existir ambiente artificial confirmado e autorização explícita.
+- **Estado de segurança:** o formulário público permanece desabilitado; não promover para `main`, não habilitar reservas e não importar dados pessoais enquanto os testes críticos de runtime estiverem pendentes.
