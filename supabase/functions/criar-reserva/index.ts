@@ -85,13 +85,19 @@ Deno.serve(async (req: Request) => {
   const dob = body.data_nascimento as string;
   const parsedDob = /^\d{4}-\d{2}-\d{2}$/.test(dob) ? new Date(dob + "T00:00:00.000Z") : null;
   const validDob = parsedDob !== null && !Number.isNaN(parsedDob.getTime()) && parsedDob.toISOString().slice(0, 10) === dob;
+  const retorno = body.retorno == null ? "" : body.retorno;
+  const mediumNome = body.medium_nome == null ? "" : body.medium_nome;
+  const phoneDigits = phone.replace(/\D/g, "");
   if (name.length > 180 || email.length > 254 || phone.length > 32 ||
+      phoneDigits.length < 10 || phoneDigits.length > 15 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       !validDob ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.gira_id as string) ||
       !["Sim", "Não"].includes(body.primeira_vez as string) ||
-      (body.retorno != null && typeof body.retorno !== "string") ||
-      (body.medium_nome != null && typeof body.medium_nome !== "string") ||
+      (typeof retorno !== "string") ||
+      (retorno !== "" && !["Sim", "Não"].includes(retorno)) ||
+      (typeof mediumNome !== "string") || mediumNome.length > 180 ||
+      (retorno !== "Sim" && mediumNome.trim() !== "") ||
       (body.tipo_preferencial != null && typeof body.tipo_preferencial !== "string") ||
       (body.descricao_preferencial != null && typeof body.descricao_preferencial !== "string")) {
     return response(400, { success: false, message: "Confira os dados informados." }, origin);
@@ -142,8 +148,8 @@ Deno.serve(async (req: Request) => {
     p_primeira_vez: body.primeira_vez,
     p_preferencial: body.preferencial,
     p_tipo_preferencial: body.preferencial ? body.tipo_preferencial : null,
-    p_retorno: typeof body.retorno === "string" ? body.retorno : null,
-    p_medium_nome: typeof body.medium_nome === "string" ? body.medium_nome : null,
+    p_retorno: retorno === "" ? null : retorno,
+    p_medium_nome: retorno === "Sim" && mediumNome.trim() !== "" ? mediumNome.trim() : null,
     p_descricao_preferencial: typeof body.descricao_preferencial === "string" ? body.descricao_preferencial : null,
   });
 
