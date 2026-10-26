@@ -72,3 +72,66 @@ Deno.test("rejeita descrição de preferência acima de 300 caracteres mesmo sem
     descricao_preferencial: "x".repeat(301),
   }), "Confira os dados informados.");
 });
+
+Deno.test("rejeita UUID inválido da gira", () => {
+  assertEquals(validateReservationInput({ ...validPayload(), gira_id: "gira-falsa" }), "Confira os dados informados.");
+});
+
+Deno.test("rejeita e-mail inválido", () => {
+  assertEquals(validateReservationInput({ ...validPayload(), email: "email-invalido" }), "Confira os dados informados.");
+});
+
+Deno.test("rejeita preferência com tipo fora da lista permitida", () => {
+  assertEquals(validateReservationInput({
+    ...validPayload(),
+    preferencial: true,
+    tipo_preferencial: "VIP",
+  }), "Selecione um tipo de atendimento preferencial válido.");
+});
+
+Deno.test("aceita tipo Outro com descrição válida", () => {
+  assertEquals(validateReservationInput({
+    ...validPayload(),
+    preferencial: true,
+    tipo_preferencial: "Outro",
+    descricao_preferencial: "Necessidade de apoio para locomoção",
+  }), null);
+});
+
+Deno.test("rejeita tipo Outro com descrição em branco", () => {
+  assertEquals(validateReservationInput({
+    ...validPayload(),
+    preferencial: true,
+    tipo_preferencial: "Outro",
+    descricao_preferencial: "   ",
+  }), "Descreva a necessidade de atendimento preferencial (até 300 caracteres).");
+});
+
+Deno.test("rejeita valor de preferência que não seja booleano", () => {
+  assertEquals(validateReservationInput({
+    ...validPayload(),
+    preferencial: "não",
+  }), "Informe se necessita de atendimento preferencial.");
+});
+
+Deno.test("aceita limites máximos de nome, e-mail, telefone e descrição", () => {
+  const payload = {
+    ...validPayload(),
+    nome_completo: "N".repeat(180),
+    email: "a".repeat(242) + "@example.com",
+    telefone: "1".repeat(15),
+    preferencial: true,
+    tipo_preferencial: "Outro",
+    descricao_preferencial: "x".repeat(300),
+  };
+  assertEquals(validateReservationInput(payload), null);
+});
+
+Deno.test("rejeita descrição de tipo Outro acima de 300 caracteres", () => {
+  assertEquals(validateReservationInput({
+    ...validPayload(),
+    preferencial: true,
+    tipo_preferencial: "Outro",
+    descricao_preferencial: "x".repeat(301),
+  }), "Confira os dados informados.");
+});
