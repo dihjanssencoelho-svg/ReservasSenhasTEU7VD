@@ -93,3 +93,11 @@ button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-all
 .gira-card h3 { color: var(--gold-light); font-family: Georgia, serif; font-size: 1.2rem; }
 .gira-card p { overflow-wrap: anywhere; }
 .gira-vacancies { margin: .75rem 0 .25rem; font-weight: 800; color: var(--gold-light); }
+
+/* Acesso interno: login no próprio portal; painel operacional ainda bloqueado */
+.team-access-wrap { margin-top: 0; }
+.secondary-button { background: transparent; border-color: var(--gold); color: var(--gold-light); }
+.team-access[hidden], .team-session[hidden] { display: none !important; }
+.team-access { border-top: 3px solid var(--gold); }
+.team-session { margin-top: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(23,19,30,.72); }
+.team-session p:last-child { margin-bottom: 0; }
