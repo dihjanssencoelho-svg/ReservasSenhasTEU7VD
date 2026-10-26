@@ -1,6 +1,6 @@
 # Edge Functions TEU7VD — estado e configuração
 
-As três Edge Functions já estão implantadas no projeto Supabase `emwnytvlbpgiwqswojze` e foram verificadas como ativas (versão 2). O formulário público continua desativado e não há importação de dados pessoais.
+As três Edge Functions foram consultadas no projeto Supabase `emwnytvlbpgiwqswojze` em 26/10/2026 e estavam `ACTIVE`, todas na versão 3: `criar-reserva` (`verify_jwt=false`), `listar-reservas` (`verify_jwt=true`) e `admin-reservas` (`verify_jwt=true`). Isso confirma o estado reportado pelo painel, mas não substitui testes HTTP de runtime nem comprova os valores dos segredos. O formulário público continua desativado e não há autorização para importar dados pessoais.
 
 ## Variáveis de ambiente
 
