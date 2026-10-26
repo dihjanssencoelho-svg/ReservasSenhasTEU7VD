@@ -72,6 +72,14 @@ Deno.serve(async (req: Request) => {
     return response(400, { success: false, message: validationMessage }, origin);
   }
 
+  // Normalize only after the shared validator has guaranteed these input types.
+  const name = (body.nome_completo as string).trim();
+  const dob = body.data_nascimento as string;
+  const phone = (body.telefone as string).trim();
+  const email = (body.email as string).trim();
+  const retorno = body.retorno == null ? "" : body.retorno as string;
+  const mediumNome = body.medium_nome == null ? "" : body.medium_nome as string;
+
   const remoteIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-real-ip");
   let captchaOk = false;
   try {
