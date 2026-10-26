@@ -28,8 +28,12 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 8. A confirmação pública de reserva não deve revelar o número da senha.
 9. Não aplicar limite artificial de 999 registros; detalhes no documento de requisitos funcionais.
 
+## Regras confirmadas
+- Uma reserva por pessoa por gira/data.
+- Cada tipo de gira tem sequência de senhas independente iniciada em 1.
+
 ## Publicação
 Quando a aplicação for implementada e revisada, habilitar GitHub Pages em **Settings → Pages**, branch `main`, pasta `/ (root)`. A publicação da página não significa que reservas estão liberadas.
 
 ## Próxima fase
-Implementar as regras documentadas em `supabase/REQUISITOS_FUNCIONAIS.md`, definir os detalhes ainda em aberto sobre o escopo da regra de uma reserva por pessoa e a sequência de senhas por tipo de gira, depois executar testes de segurança, capacidade, administração e importação.
+Implementar as regras documentadas em `supabase/REQUISITOS_FUNCIONAIS.md` e executar testes de segurança, capacidade, administração e importação. A regra por pessoa e a numeração inicial de cada tipo de gira já foram definidas.
