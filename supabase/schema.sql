@@ -1,8 +1,6 @@
--- TEU7VD | Esquema preliminar para PROJETO DE HOMOLOGAÇÃO.
--- Revisar antes da execução. Não importar dados reais nesta etapa.
--- As políticas não concedem INSERT público. Reservas públicas dependerão de RPC
--- transacional no servidor, a ser implementada e testada antes do lançamento.
-
+-- TEU7VD | Esquema inicial de homologação
+-- Este arquivo reflete as migrações aplicadas ao projeto Supabase em 26/10/2026.
+-- Cria estrutura vazia; não importa consulentes nem publica reservas.
 create extension if not exists pgcrypto;
 
 create table if not exists public.giras (
@@ -62,50 +60,53 @@ create table if not exists public.auditoria (
   detalhes jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
+create index if not exists auditoria_user_id_idx on public.auditoria(user_id);
 
 alter table public.giras enable row level security;
 alter table public.reservas enable row level security;
 alter table public.perfis_admin enable row level security;
 alter table public.auditoria enable row level security;
 
--- Visitantes podem consultar somente giras ativas publicadas.
+-- Visitantes podem ler somente giras ativas/publicadas.
+-- Administradores ativos autenticados também podem ler giras de preparação.
 drop policy if exists giras_publicadas_select on public.giras;
-create policy giras_publicadas_select on public.giras
-for select to anon, authenticated
-using (ativa = true and status = 'publicada');
-
--- Administradores autenticados com perfil ativo podem consultar as giras.
 drop policy if exists giras_admin_select on public.giras;
-create policy giras_admin_select on public.giras
-for select to authenticated using (
-  exists (select 1 from public.perfis_admin p
-          where p.user_id = auth.uid() and p.ativo = true)
+drop policy if exists giras_publicadas_ou_admin_select on public.giras;
+create policy giras_publicadas_ou_admin_select on public.giras
+for select to anon, authenticated
+using (
+  (ativa = true and status = 'publicada')
+  or exists (
+    select 1 from public.perfis_admin p
+    where p.user_id = (select auth.uid()) and p.ativo = true
+  )
 );
 
--- Apenas os próprios perfis podem consultar o registro de perfil.
 drop policy if exists perfis_admin_select_self on public.perfis_admin;
 create policy perfis_admin_select_self on public.perfis_admin
-for select to authenticated using (user_id = auth.uid());
+for select to authenticated
+using (user_id = (select auth.uid()));
 
--- Administradores ativos podem consultar reservas e auditoria.
--- Escrita administrativa também será implementada por camada/RPC validada.
 drop policy if exists reservas_admin_select on public.reservas;
 create policy reservas_admin_select on public.reservas
-for select to authenticated using (
-  exists (select 1 from public.perfis_admin p
-          where p.user_id = auth.uid() and p.ativo = true)
+for select to authenticated
+using (
+  exists (
+    select 1 from public.perfis_admin p
+    where p.user_id = (select auth.uid()) and p.ativo = true
+  )
 );
 
 drop policy if exists auditoria_admin_select on public.auditoria;
 create policy auditoria_admin_select on public.auditoria
-for select to authenticated using (
-  exists (select 1 from public.perfis_admin p
-          where p.user_id = auth.uid() and p.ativo = true)
+for select to authenticated
+using (
+  exists (
+    select 1 from public.perfis_admin p
+    where p.user_id = (select auth.uid()) and p.ativo = true
+  )
 );
 
--- Próximas etapas obrigatórias:
--- 1. RPC transacional para reservar/cancelar, com bloqueio de linha e capacidade.
--- 2. Políticas e funções administrativas por papel.
--- 3. Trigger de auditoria e atualização de updated_at.
--- 4. Testes RLS anon/authenticated e concorrência.
--- 5. Importação somente após validar cada gira e os conflitos da planilha.
+-- Não existe INSERT público direto em reservas.
+-- Próximas etapas obrigatórias: RPC transacional de reserva/cancelamento,
+-- políticas administrativas por papel, trigger de auditoria e testes RLS.
