@@ -1,0 +1,37 @@
+name: Validar Edge Functions TEU7VD
+
+on:
+  push:
+    branches:
+      - preparacao-homologacao
+  pull_request:
+    branches:
+      - main
+      - preparacao-homologacao
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deno-check:
+    name: Verificação estática Deno
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Instalar Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Verificar criar-reserva
+        run: deno check supabase/functions/criar-reserva/index.ts
+
+      - name: Verificar listar-reservas
+        run: deno check supabase/functions/listar-reservas/index.ts
+
+      - name: Verificar admin-reservas
+        run: deno check supabase/functions/admin-reservas/index.ts
