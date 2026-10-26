@@ -22,7 +22,7 @@ O segredo personalizado `TEU7VD_SECRET_KEYS` não é lido pelo código atual e �
 2. No Cloudflare Dashboard → Turnstile, criar um widget do tipo Managed e autorizar apenas o hostname final.
 3. Guardar o **sitekey** público para integração no frontend e cadastrar a **secret key** como `TURNSTILE_SECRET_KEY` em Supabase → Edge Functions → Secrets.
 4. Definir `TEU7VD_ALLOWED_ORIGIN` com a origem exata e confirmar que corresponde ao cabeçalho `Origin` do portal.
-5. Integrar o widget ao formulário e enviar o token de Turnstile para `criar-reserva`. A página atual não contém widget e o formulário segue intencionalmente desativado.
+5. Integrar o widget ao formulário e enviar o token de Turnstile para `criar-reserva`. O widget foi integrado à página na branch de homologação com callbacks de sucesso, expiração e erro. O token fica apenas em memória e não é enviado a `criar-reserva`; o formulário e o envio continuam intencionalmente desativados. A integração visual ainda precisa ser verificada no hostname publicado.
 6. Executar os smoke tests sem mutações, testes com contas artificiais e homologação ponta a ponta antes de habilitar reservas.
 
 O sitekey pode aparecer no frontend; a secret key nunca. A criação de widget requer acesso autenticado à conta Cloudflare. Não inventar nem reutilizar chaves de produção ou de teste para tráfego real.
