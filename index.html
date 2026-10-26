@@ -58,6 +58,11 @@
         <select id="event" name="event" disabled>
           <option>Seleção indisponível nesta etapa</option>
         </select>
+        <div class="turnstile-wrap">
+          <p class="small muted">Verificação de segurança (somente homologação; o envio de reservas continua bloqueado).</p>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-" data-callback="onTurnstileVerified" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileError" data-theme="dark"></div>
+          <p id="turnstile-status" class="small muted" role="status" aria-live="polite">A verificação não envia nem grava dados pessoais.</p>
+        </div>
         <button type="button" disabled>Reservas ainda não liberadas</button>
       </form>
       <p id="config-message" class="small muted">Agenda pública conectada. Nenhuma reserva será gravada nesta etapa.</p>
@@ -91,5 +96,6 @@
     <p>Portal de reservas independente do site institucional.</p>
   </footer>
   <script src="./assets/app.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </body>
 </html>
