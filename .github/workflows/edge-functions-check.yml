@@ -41,7 +41,7 @@ jobs:
           grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' index.html
 
       - name: Validar sintaxe dos smoke tests HTTP
-        run: bash -n supabase/tests/edge-input-smoke.sh supabase/tests/security-smoke.sh
+        run: bash -n supabase/tests/edge-input-smoke.sh supabase/tests/security-smoke.sh supabase/tests/reservation-concurrency-smoke.sh
 
       - name: Verificar criar-reserva
         run: deno check supabase/functions/criar-reserva/index.ts
@@ -70,11 +70,16 @@ jobs:
           supabase start
           supabase db reset
 
-      - name: Testar criação, duplicidade, capacidade, numeração e auditoria
+      - name: Testar criação, duplicidade, capacidade, numeração, auditoria e rollback atômico
         env:
           LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: |
           psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/reservation-flow.test.sql
+
+      - name: Testar concorrência de numeração e capacidade
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: bash supabase/tests/reservation-concurrency-smoke.sh
 
   runtime-smoke:
     name: Smoke HTTP real sem mutações
