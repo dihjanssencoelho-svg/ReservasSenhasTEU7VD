@@ -7,7 +7,7 @@
 ## Pré-condições
 
 - [ ] Confirmar o hostname real do portal e que ele corresponde ao domínio permitido no widget Turnstile.
-- [ ] Confirmar no Supabase Edge Function Secrets que `TURNSTILE_SECRET_KEY` e `TEU7VD_ALLOWED_ORIGIN` estão salvos com os nomes exatos.
+- [x] Usuário confirmou que `TURNSTILE_SECRET_KEY` e `TEU7VD_ALLOWED_ORIGIN` existem no Supabase Edge Function Secrets. **Pendente:** verificar os valores sem revelá-los e comprovar funcionamento por chamada de runtime.
 - [ ] Usar apenas chaves de teste/ambiente de homologação quando houver suporte oficial; nunca substituir o segredo de produção por uma chave fictícia.
 - [ ] Confirmar que o formulário HTML permanece desabilitado e que não houve importação de dados pessoais.
 - [ ] Usar uma gira artificial de homologação, sem dados de consulentes.
@@ -61,4 +61,4 @@ Não habilitar reservas públicas enquanto qualquer teste crítico estiver pende
 
 | Data | Teste | Resultado | Evidência/observação |
 |---|---|---|---|
-| Pendente | Execução ponta a ponta | Não executado | Conector atual não forneceu um executor seguro de chamadas HTTP às Edge Functions; sem evidência de validação dos segredos em runtime |
+| 26/10/2026 | Inspeção de configuração e funções | Parcial | Usuário confirmou existência dos dois nomes de segredo; três funções estão ACTIVE na versão 3. Não foi possível confirmar valores nem executar chamada HTTP ponta a ponta. Logs recentes não provam validação Turnstile. |
