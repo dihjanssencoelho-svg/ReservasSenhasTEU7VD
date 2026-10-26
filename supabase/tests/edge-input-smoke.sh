@@ -13,13 +13,14 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
 request() {
-  local name="$1" endpoint="$2" token="$3" origin="$4" payload="$5" expected="$6"
+  local name="$1" endpoint="$2" token="$3" origin="$4" payload="$5" expected="$6" method="${7:-POST}"
   local status
   local -a headers
-  headers=(-H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H "Origin: $origin" -H 'Content-Type: application/json')
+  headers=(-H "apikey: $SUPABASE_PUBLISHABLE_KEY" -H 'Content-Type: application/json')
+  if [[ -n "$origin" ]]; then headers+=(-H "Origin: $origin"); fi
   if [[ -n "$token" ]]; then headers+=(-H "Authorization: Bearer $token"); fi
   status="$(curl -sS -o "$TMP/$name.json" -w '%{http_code}' "$BASE/$endpoint" \
-    -X POST "${headers[@]}" --data "$payload")"
+    -X "$method" "${headers[@]}" --data "$payload")"
   if [[ "$status" != "$expected" ]]; then
     echo "FALHOU $name: esperado HTTP $expected, recebido $status"
     cat "$TMP/$name.json"
@@ -28,9 +29,13 @@ request() {
   echo "OK $name: HTTP $status"
 }
 
-# Payload incompleto deve ser recusado antes de Turnstile ou qualquer RPC.
-request "criar-payload-incompleto" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 400
+# Controles de protocolo/origem e payload; todos param antes do Turnstile/RPC.
+request "criar-metodo-negado" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 405 GET
+request "criar-sem-origem" "criar-reserva" "" "" '{}' 403
 request "criar-origem-negada" "criar-reserva" "" "https://origem-nao-autorizada.invalid" '{}' 403
+request "criar-json-malformado" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{' 400
+request "criar-campo-extra" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{"campo_desconhecido":true}' 400
+request "criar-payload-incompleto" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 400
 
 # Sem bearer token, endpoints protegidos devem parar antes de consultar dados.
 request "listar-sem-token" "listar-reservas" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 401
