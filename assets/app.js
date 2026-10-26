@@ -9,6 +9,27 @@ const SUPABASE_PUBLIC_KEY = "sb_publishable_gKuJbxS6UBnsodjgdasDIQ_G2k_FL31";
 const configMessage = document.getElementById("config-message");
 const girasList = document.getElementById("giras-list");
 const reservationForm = document.getElementById("reservation-form");
+const turnstileStatus = document.getElementById("turnstile-status");
+
+// Homologação apenas: token mantido em memória, nunca persistido nem enviado.
+// A reserva continua bloqueada até aprovação explícita dos testes de segurança.
+let turnstileTokenForHomologation = null;
+window.onTurnstileVerified = function (token) {
+  turnstileTokenForHomologation = typeof token === "string" ? token : null;
+  if (turnstileStatus) {
+    turnstileStatus.textContent = turnstileTokenForHomologation
+      ? "Verificação concluída neste navegador. O envio de reservas continua desativado."
+      : "Não foi possível concluir a verificação. O envio continua desativado.";
+  }
+};
+window.onTurnstileExpired = function () {
+  turnstileTokenForHomologation = null;
+  if (turnstileStatus) turnstileStatus.textContent = "Verificação expirada. Atualize o desafio; nenhuma reserva foi enviada.";
+};
+window.onTurnstileError = function () {
+  turnstileTokenForHomologation = null;
+  if (turnstileStatus) turnstileStatus.textContent = "Verificação indisponível. Nenhuma reserva foi enviada.";
+};
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (character) => ({
