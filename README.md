@@ -45,10 +45,10 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - Não versionar dados pessoais de consulentes.
 
 ## Bloqueios antes de liberar reservas
-1. Confirmar que o hostname definitivo será `dihjanssen-coelho-svg.github.io`? Não; usar o hostname efetivamente configurado acima, `dihjanssen-coelho-svg.github.io` não foi configurado.
-2. Confirmar/ativar a configuração de GitHub Pages apenas quando houver autorização explícita para publicar.
-3. Cadastrar `TURNSTILE_SECRET_KEY` em Supabase Edge Function Secrets a partir da chave secreta do widget Cloudflare.
-4. Configurar `TEU7VD_ALLOWED_ORIGIN` como `https://dihjanssen-coelho-svg.github.io` somente se esse for o hostname efetivo confirmado para o repositório.
+1. O hostname pretendido do GitHub Pages para este proprietário/repositório é `dihjanssencoelho-svg.github.io`; verificar a configuração real do GitHub Pages antes de qualquer publicação.
+2. Não habilitar/publicar GitHub Pages sem autorização explícita.
+3. Cadastrar `TURNSTILE_SECRET_KEY` em Supabase Edge Function Secrets usando a chave secreta do widget Cloudflare; nunca enviá-la pelo chat ou versioná-la.
+4. Configurar `TEU7VD_ALLOWED_ORIGIN=https://dihjanssencoelho-svg.github.io` apenas quando o hostname definitivo estiver confirmado.
 5. Integrar o sitekey e o token Turnstile ao formulário.
 6. Executar smoke tests e homologação ponta a ponta com contas artificiais.
 7. Configurar/verificar a conta administrativa autorizada.
