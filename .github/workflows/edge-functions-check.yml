@@ -69,3 +69,24 @@ jobs:
           TEU7VD_ALLOWED_ORIGIN: https://dihjanssencoelho-svg.github.io
         run: bash supabase/tests/edge-input-smoke.sh
 
+  browser-smoke:
+    name: Smoke do portal no navegador
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar Playwright e Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      - name: Verificar portal publicado sem enviar reservas
+        run: node supabase/tests/browser-smoke.mjs
