@@ -22,15 +22,15 @@ export function validateReservationInput(body: ReservationPayload): string | nul
   const email = (body.email as string).trim();
   const phone = (body.telefone as string).trim();
   const dob = body.data_nascimento as string;
-  const parsedDob = /^\\d{4}-\\d{2}-\\d{2}$/.test(dob) ? new Date(dob + "T00:00:00.000Z") : null;
+  const parsedDob = /^\d{4}-\d{2}-\d{2}$/.test(dob) ? new Date(dob + "T00:00:00.000Z") : null;
   const validDob = parsedDob !== null && !Number.isNaN(parsedDob.getTime()) && parsedDob.toISOString().slice(0, 10) === dob;
   const retorno = body.retorno == null ? "" : body.retorno;
   const mediumNome = body.medium_nome == null ? "" : body.medium_nome;
-  const phoneDigits = phone.replace(/\\D/g, "");
+  const phoneDigits = phone.replace(/\D/g, "");
 
   if (name.length > 180 || email.length > 254 || phone.length > 32 ||
       phoneDigits.length < 10 || phoneDigits.length > 15 ||
-      !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email) ||
+      !/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email) ||
       !validDob ||
       !UUID_PATTERN.test(body.gira_id as string) ||
       !["Sim", "Não"].includes(body.primeira_vez as string) ||
