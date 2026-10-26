@@ -1,0 +1,1 @@
+REVOKE ALL PRIVILEGES ON TABLE public.reservas FROM anon, authenticated; REVOKE ALL PRIVILEGES ON TABLE public.auditoria FROM anon, authenticated; REVOKE ALL PRIVILEGES ON TABLE public.contadores_senha FROM anon, authenticated;
