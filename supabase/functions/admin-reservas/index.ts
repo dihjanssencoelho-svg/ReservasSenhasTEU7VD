@@ -38,11 +38,21 @@ Deno.serve(async (req: Request) => {
   const match = /^Bearer\s+(.+)$/i.exec(authorization);
   if (!match) return respond(401, { success: false, message: "Autenticação necessária." }, origin);
 
-  const length = Number(req.headers.get("content-length") ?? "0");
-  if (length > 4000) return respond(413, { success: false, message: "Solicitação muito grande." }, origin);
-
+  let rawBody: string;
+  try {
+    rawBody = await req.text();
+  } catch {
+    return respond(400, { success: false, message: "Solicitação inválida." }, origin);
+  }
+  if (new TextEncoder().encode(rawBody).byteLength > 4000) {
+    return respond(413, { success: false, message: "Solicitação muito grande." }, origin);
+  }
   let body: Record<string, unknown>;
-  try { body = await req.json(); } catch {
+  try {
+    const parsed: unknown = JSON.parse(rawBody);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid body");
+    body = parsed as Record<string, unknown>;
+  } catch {
     return respond(400, { success: false, message: "Solicitação inválida." }, origin);
   }
   const allowedFields = new Set(["action", "reservation_id", "reason"]);
