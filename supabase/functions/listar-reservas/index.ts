@@ -36,11 +36,23 @@ Deno.serve(async (req: Request) => {
   if (!expectedOrigin || !origin || origin !== expectedOrigin) return reply(403, { success: false, message: "Origem não autorizada." }, origin);
   const auth = /^Bearer\s+(.+)$/i.exec(req.headers.get("authorization") ?? "");
   if (!auth) return reply(401, { success: false, message: "Autenticação necessária." }, origin);
-  const size = Number(req.headers.get("content-length") ?? "0");
-  if (size > 5000) return reply(413, { success: false, message: "Solicitação muito grande." }, origin);
-
+  let rawBody: string;
+  try {
+    rawBody = await req.text();
+  } catch {
+    return reply(400, { success: false, message: "Solicitação inválida." }, origin);
+  }
+  if (new TextEncoder().encode(rawBody).byteLength > 5000) {
+    return reply(413, { success: false, message: "Solicitação muito grande." }, origin);
+  }
   let body: Record<string, unknown>;
-  try { body = await req.json(); } catch { return reply(400, { success: false, message: "Solicitação inválida." }, origin); }
+  try {
+    const parsed: unknown = JSON.parse(rawBody);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid body");
+    body = parsed as Record<string, unknown>;
+  } catch {
+    return reply(400, { success: false, message: "Solicitação inválida." }, origin);
+  }
   const allowed = new Set(["query", "gira_id", "status", "tipo_gira", "data_inicio", "data_fim", "page", "page_size"]);
   if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).some(k => !allowed.has(k))) {
     return reply(400, { success: false, message: "Campos não reconhecidos." }, origin);
