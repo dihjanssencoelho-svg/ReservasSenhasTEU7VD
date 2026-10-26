@@ -22,6 +22,7 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - `supabase/REQUISITOS_FUNCIONAIS.md`: regras institucionais confirmadas.
 - `supabase/functions/`: Edge Functions.
 - `supabase/functions/README.md`: configuração e requisitos para homologação.
+- `supabase/HOMOLOGACAO_TURNSTILE.md`: matriz de testes negativos/positivos, critérios de aprovação e registro da homologação.
 
 ## Regras confirmadas
 1. Uma reserva por pessoa por gira/data.
