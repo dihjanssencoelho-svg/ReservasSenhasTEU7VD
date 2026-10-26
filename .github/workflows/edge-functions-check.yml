@@ -86,7 +86,7 @@ jobs:
       - name: Instalar Playwright e Chromium
         run: |
           npm install --no-save playwright
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
 
       - name: Verificar portal publicado sem enviar reservas
         run: node supabase/tests/browser-smoke.mjs
