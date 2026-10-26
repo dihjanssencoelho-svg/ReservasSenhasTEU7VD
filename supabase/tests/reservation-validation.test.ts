@@ -57,3 +57,18 @@ Deno.test("aceita retorno Sim com nome de médium e tipo preferencial conhecido"
     tipo_preferencial: "PCD",
   }), null);
 });
+
+Deno.test("rejeita data de nascimento futura", () => {
+  const tomorrow = new Date();
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  const futureDob = tomorrow.toISOString().slice(0, 10);
+  assertEquals(validateReservationInput({ ...validPayload(), data_nascimento: futureDob }), "Confira os dados informados.");
+});
+
+Deno.test("rejeita descrição de preferência acima de 300 caracteres mesmo sem tipo Outro", () => {
+  assertEquals(validateReservationInput({
+    ...validPayload(),
+    preferencial: false,
+    descricao_preferencial: "x".repeat(301),
+  }), "Confira os dados informados.");
+});
