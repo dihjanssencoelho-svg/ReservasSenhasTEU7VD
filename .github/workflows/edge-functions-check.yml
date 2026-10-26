@@ -30,6 +30,16 @@ jobs:
       - name: Testar contrato de validação de reservas
         run: deno test supabase/tests/reservation-validation.test.ts
 
+      - name: Validar sintaxe do frontend
+        run: node --check assets/app.js
+
+      - name: Garantir que o envio público continua bloqueado
+        shell: bash
+        run: |
+          grep -q '<button type="button" disabled>Reservas ainda não liberadas</button>' index.html
+          ! grep -Eq 'functions/v1/criar-reserva|fetch\([^)]*criar-reserva' assets/app.js
+          grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' index.html
+
       - name: Validar sintaxe dos smoke tests HTTP
         run: bash -n supabase/tests/edge-input-smoke.sh supabase/tests/security-smoke.sh
 
