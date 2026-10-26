@@ -3,15 +3,15 @@
 # Somente leitura. Não cria, altera nem cancela reservas.
 set -euo pipefail
 
-: "\${SUPABASE_URL:?Defina SUPABASE_URL}"
-: "\${SUPABASE_PUBLISHABLE_KEY:?Defina SUPABASE_PUBLISHABLE_KEY}"
-: "\${TEU7VD_ALLOWED_ORIGIN:?Defina TEU7VD_ALLOWED_ORIGIN}"
-: "\${TOKEN_ADMIN:?Defina JWT de usuário de teste com papel admin}"
-: "\${TOKEN_GESTOR:?Defina JWT de usuário de teste com papel gestor}"
-: "\${TOKEN_OPERADOR:?Defina JWT de usuário de teste com papel operador}"
-: "\${TOKEN_SEM_PERFIL:?Defina JWT de usuário de teste sem perfil ativo}"
+: "${SUPABASE_URL:?Defina SUPABASE_URL}"
+: "${SUPABASE_PUBLISHABLE_KEY:?Defina SUPABASE_PUBLISHABLE_KEY}"
+: "${TEU7VD_ALLOWED_ORIGIN:?Defina TEU7VD_ALLOWED_ORIGIN}"
+: "${TOKEN_ADMIN:?Defina JWT de usuário de teste com papel admin}"
+: "${TOKEN_GESTOR:?Defina JWT de usuário de teste com papel gestor}"
+: "${TOKEN_OPERADOR:?Defina JWT de usuário de teste com papel operador}"
+: "${TOKEN_SEM_PERFIL:?Defina JWT de usuário de teste sem perfil ativo}"
 
-BASE="\${SUPABASE_URL%/}/functions/v1/listar-reservas"
+BASE="${SUPABASE_URL%/}/functions/v1/listar-reservas"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
