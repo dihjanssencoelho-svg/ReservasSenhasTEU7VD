@@ -25,7 +25,7 @@ Deno.test("rejeita data de nascimento inexistente", () => {
 });
 
 Deno.test("rejeita primeira_vez fora do contrato Sim/Não", () => {
-  assertEquals(validateReservationInput({ ...validPayload(), primeira_vez: true }), "Confira os dados informados.");
+  assertEquals(validateReservationInput({ ...validPayload(), primeira_vez: true }), "Preencha os campos obrigatórios.");
 });
 
 Deno.test("rejeita telefone com menos de 10 dígitos", () => {
