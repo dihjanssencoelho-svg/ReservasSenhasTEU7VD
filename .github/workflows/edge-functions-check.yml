@@ -27,6 +27,9 @@ jobs:
         with:
           deno-version: v2.x
 
+      - name: Testar contrato de validação de reservas
+        run: deno test supabase/tests/reservation-validation.test.ts
+
       - name: Verificar criar-reserva
         run: deno check supabase/functions/criar-reserva/index.ts
 
