@@ -36,6 +36,9 @@ request "criar-origem-negada" "criar-reserva" "" "https://origem-nao-autorizada.
 request "criar-json-malformado" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{' 400
 request "criar-campo-extra" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{"campo_desconhecido":true}' 400
 request "criar-payload-incompleto" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 400
+# Payload sintaticamente válido com token Turnstile deliberadamente inválido.
+# Deve ser recusado pelo siteverify antes da chamada à RPC e sem mutações.
+request "criar-turnstile-invalido" "criar-reserva" "" "$TEU7VD_ALLOWED_ORIGIN" '{"gira_id":"00000000-0000-4000-8000-000000000001","nome_completo":"Teste Homologacao","data_nascimento":"1990-01-01","telefone":"11999999999","email":"homologacao@example.invalid","primeira_vez":"Não","preferencial":false,"turnstile_token":"invalid-test-token-not-real"}' 403
 
 # Sem bearer token, endpoints protegidos devem parar antes de consultar dados.
 request "listar-sem-token" "listar-reservas" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 401
