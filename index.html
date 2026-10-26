@@ -26,8 +26,8 @@
       <div class="status-note" role="status" aria-live="polite">
         <span class="status-icon" aria-hidden="true">i</span>
         <div>
-          <strong>Portal em preparação</strong>
-          <p>As reservas serão liberadas após a configuração do banco, revisão das vagas e homologação dos dados.</p>
+          <strong>Agenda conectada · reservas em preparação</strong>
+          <p>As datas publicadas serão exibidas aqui. A solicitação de reservas será habilitada após a homologação do backend seguro.</p>
         </div>
       </div>
     </section>
@@ -42,15 +42,15 @@
       </div>
       <div id="giras-list" class="empty-state">
         <div class="calendar-icon" aria-hidden="true">▦</div>
-        <h3>Agenda em configuração</h3>
-        <p>As datas, horários e vagas aparecerão aqui quando forem validados pela administração.</p>
+        <h3>Consultando agenda</h3>
+        <p>As giras publicadas serão carregadas automaticamente após validação da administração.</p>
       </div>
     </section>
 
     <section class="panel form-panel" aria-labelledby="reservation-title">
       <p class="eyebrow">Atendimento</p>
       <h2 id="reservation-title">Solicitar reserva</h2>
-      <p class="muted">O formulário ficará disponível após a homologação. Esta versão não coleta nem grava dados pessoais.</p>
+      <p class="muted">O formulário permanece desativado até a conclusão dos testes de segurança. Esta etapa não coleta nem grava dados pessoais.</p>
       <form id="reservation-form" autocomplete="off">
         <label for="full-name">Nome completo</label>
         <input id="full-name" name="full-name" disabled placeholder="Disponível após homologação">
@@ -60,7 +60,7 @@
         </select>
         <button type="button" disabled>Reservas ainda não liberadas</button>
       </form>
-      <p id="config-message" class="small muted">Ambiente não conectado ao Supabase. Nenhuma reserva será gravada.</p>
+      <p id="config-message" class="small muted">Agenda pública conectada. Nenhuma reserva será gravada nesta etapa.</p>
     </section>
 
     <section class="privacy-note">
