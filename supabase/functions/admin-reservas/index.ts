@@ -89,11 +89,11 @@ Deno.serve(async (req: Request) => {
   }
 
   const rpc = actions[body.action as keyof typeof actions];
-  const { error } = await trusted.rpc(rpc, {
+  const { data: changed, error } = await trusted.rpc(rpc, {
     p_reserva_id: body.reservation_id,
     p_motivo: reason || null,
   });
-  if (error) {
+  if (error || changed !== true) {
     // Do not return SQL, schema, or implementation details to the browser.
     return respond(400, { success: false, message: "A operação não foi concluída. Confira o status da reserva e tente novamente." }, origin);
   }
