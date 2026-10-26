@@ -101,3 +101,24 @@ button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-all
 .team-access { border-top: 3px solid var(--gold); }
 .team-session { margin-top: 1rem; padding: 1rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(23,19,30,.72); }
 .team-session p:last-child { margin-bottom: 0; }
+
+
+/* Área administrativa — listagem protegida, filtros e tabela responsiva */
+.admin-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem .8rem; margin: 1rem 0; }
+.admin-filters label { align-self: end; }
+.admin-filters input, .admin-filters select { min-width: 0; }
+.admin-date-row, .admin-filter-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.admin-filter-actions button { margin-top: .5rem; }
+.admin-results { width: 100%; margin-top: .8rem; }
+.admin-table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+.admin-table { width: 100%; border-collapse: collapse; background: rgba(23,19,30,.72); font-size: .86rem; }
+.admin-table th, .admin-table td { padding: .7rem; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.admin-table th { color: var(--gold-light); background: #211b2b; position: sticky; top: 0; }
+.admin-table tr:last-child td { border-bottom: 0; }
+.admin-table button { min-width: 130px; margin: 0; font-size: .78rem; }
+.admin-pagination { display: flex; gap: .8rem; justify-content: flex-end; }
+.admin-pagination button { width: auto; min-width: 120px; }
+@media (max-width: 640px) {
+  .admin-filters, .admin-date-row, .admin-filter-actions { grid-template-columns: minmax(0, 1fr); }
+  .admin-date-row, .admin-filter-actions { grid-column: 1; }
+}
