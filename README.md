@@ -4,9 +4,9 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 
 ## Estado atual
 - Branch de trabalho: `preparacao-homologacao`.
-- Supabase configurado para homologação; cinco migrações aplicadas.
+- Supabase configurado para homologação; seis migrações aplicadas.
 - Nenhum consulente ou registro histórico foi importado.
-- Portal ainda não publicado e reservas reais permanecem bloqueadas até completar frontend, backend público protegido e homologação.
+- Frontend já consulta somente a agenda pública publicada; formulário segue desativado. Edge Function está versionada, mas não implantada. Portal não publicado.
 
 ## Arquivos principais
 - `index.html`: entrada do portal.
@@ -16,6 +16,9 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - `supabase/IMPORTACAO.md`: protocolo de migração dos registros históricos.
 - `supabase/REQUISITOS_FUNCIONAIS.md`: regras institucionais confirmadas.
 - `supabase/IMPLEMENTACAO_FASE_2.md`: estado das funções transacionais, permissões e testes executados.
+- `supabase/IMPLEMENTACAO_FASE_3.md`: agenda pública, Edge Function preparada e pendências de homologação.
+- `supabase/functions/criar-reserva/index.ts`: backend público preparado; requer secrets e não está implantado.
+- `supabase/functions/README.md`: configuração e requisitos de implantação.
 
 ## Regras confirmadas
 1. Uma reserva por pessoa por gira/data.
@@ -30,9 +33,10 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - Nunca colocar a chave `service_role` ou qualquer segredo no frontend.
 - RLS habilitado nas tabelas.
 - RPC de criação executável apenas por `service_role`, não por `anon` ou `authenticated`.
-- O frontend público deverá chamar um backend/Edge Function com proteção contra abuso; não conectar diretamente a função de criação do banco ao navegador.
+- O frontend lê a agenda publicada usando apenas chave publishable e RLS.
+- A criação de reservas exige Edge Function com Turnstile e chave secreta server-side; essa função ainda não foi implantada.
 - O acesso administrativo usa Supabase Auth e perfil ativo com papel `admin`.
 - Não versionar dados pessoais de consulentes.
 
 ## Publicação
-Não habilitar GitHub Pages nem liberar reservas até concluir a Edge Function pública protegida, configurar usuário administrador real, implementar o frontend e passar os testes de homologação.
+Não habilitar GitHub Pages nem liberar reservas até configurar Turnstile e secrets, implantar e testar a Edge Function, configurar usuário administrador real, implementar o formulário/painel e passar os testes de homologação.
