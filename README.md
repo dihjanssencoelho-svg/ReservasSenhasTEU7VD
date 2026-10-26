@@ -4,7 +4,7 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 
 ## Estado atual
 - Branch de trabalho: `preparacao-homologacao`.
-- Supabase configurado para homologação; seis migrações aplicadas.
+- Supabase configurado para homologação; sete migrações aplicadas.
 - Nenhum consulente ou registro histórico foi importado.
 - Frontend já consulta somente a agenda pública publicada; formulário segue desativado. Edge Function está versionada, mas não implantada. Portal não publicado.
 
@@ -17,6 +17,7 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - `supabase/REQUISITOS_FUNCIONAIS.md`: regras institucionais confirmadas.
 - `supabase/IMPLEMENTACAO_FASE_2.md`: estado das funções transacionais, permissões e testes executados.
 - `supabase/IMPLEMENTACAO_FASE_3.md`: agenda pública, Edge Function preparada e pendências de homologação.
+- `supabase/IMPLEMENTACAO_FASE_4.md`: endurecimento de permissões das operações administrativas.
 - `supabase/functions/criar-reserva/index.ts`: backend público preparado; requer secrets e não está implantado.
 - `supabase/functions/README.md`: configuração e requisitos de implantação.
 
@@ -35,6 +36,7 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - RPC de criação executável apenas por `service_role`, não por `anon` ou `authenticated`.
 - O frontend lê a agenda publicada usando apenas chave publishable e RLS.
 - A criação de reservas exige Edge Function com Turnstile e chave secreta server-side; essa função ainda não foi implantada.
+- RPCs administrativas estão restritas a backend confiável; `anon` e `authenticated` não podem executá-las diretamente.
 - O acesso administrativo usa Supabase Auth e perfil ativo com papel `admin`.
 - Não versionar dados pessoais de consulentes.
 
