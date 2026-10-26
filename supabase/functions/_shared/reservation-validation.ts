@@ -30,7 +30,7 @@ export function validateReservationInput(body: ReservationPayload): string | nul
 
   if (name.length > 180 || email.length > 254 || phone.length > 32 ||
       phoneDigits.length < 10 || phoneDigits.length > 15 ||
-      !/^[^\s@]+@[^\s@]+\\.[^\s@]+$/.test(email) ||
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       !validDob ||
       !UUID_PATTERN.test(body.gira_id as string) ||
       !["Sim", "Não"].includes(body.primeira_vez as string) ||
