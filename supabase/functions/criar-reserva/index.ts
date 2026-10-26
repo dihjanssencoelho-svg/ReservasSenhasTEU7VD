@@ -109,8 +109,14 @@ Deno.serve(async (req: Request) => {
   }
 
   const remoteIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-real-ip");
-  const captchaOk = await verifyTurnstile(body.turnstile_token as string, remoteIp);
-  if (!captchaOk) return response(403, { success: false, message: "Não foi possível validar a proteção contra envios automáticos." }, origin);
+  let captchaOk = false;
+  try {
+    captchaOk = await verifyTurnstile(body.turnstile_token as string, remoteIp);
+  } catch {
+    // Fail closed: indisponibilidade do provedor nunca libera uma reserva sem validação.
+    captchaOk = false;
+  }
+  if (!captchaOk) return response(403, { success: false, message: "Não foi possível validar a proteção contra envios automáticos. Tente novamente." }, origin);
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   let secretKey: string | undefined;
@@ -142,12 +148,17 @@ Deno.serve(async (req: Request) => {
   });
 
   if (error) {
-    const message = error.code === "23505"
-      ? "Já existe uma reserva para esta pessoa nesta gira/data."
-      : error.code === "P0001" || error.code === "22023"
-        ? error.message
-        : "Não foi possível concluir a reserva. Tente novamente ou entre em contato com a administração.";
-    return response(error.code === "23505" ? 409 : 400, { success: false, message }, origin);
+    // Não encaminhar mensagens SQL ao público; códigos conhecidos recebem mensagens controladas.
+    const knownMessages: Record<string, string> = {
+      "23505": "Já existe uma reserva para esta pessoa nesta gira/data.",
+      "P0001": "Esta gira não está disponível ou não há vagas. Confira a agenda e tente novamente.",
+      "22023": "Confira os campos obrigatórios e os dados de atendimento preferencial.",
+    };
+    const message = knownMessages[error.code ?? ""] ??
+      "Não foi possível concluir a reserva. Tente novamente ou entre em contato com a administração.";
+    const status = error.code === "23505" ? 409 :
+      error.code === "P0001" || error.code === "22023" ? 400 : 503;
+    return response(status, { success: false, message }, origin);
   }
 
   // Intentionally return only the generic message. Never expose the ticket or reservation ID.
