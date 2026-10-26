@@ -52,6 +52,30 @@ jobs:
       - name: Verificar admin-reservas
         run: deno check supabase/functions/admin-reservas/index.ts
 
+  reservation-flow-integration:
+    name: Integração local de reservas (rollback)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Instalar Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Iniciar Supabase local e aplicar migrações
+        run: |
+          supabase start
+          supabase db reset
+
+      - name: Testar criação, duplicidade, capacidade, numeração e auditoria
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/reservation-flow.test.sql
+
   runtime-smoke:
     name: Smoke HTTP real sem mutações
     # Não chamar o backend real a partir de pull requests de terceiros.
