@@ -89,7 +89,7 @@ Deno.serve(async (req: Request) => {
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
       !validDob ||
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.gira_id as string) ||
-      typeof body.primeira_vez !== "string" ||
+      !["Sim", "Não"].includes(body.primeira_vez as string) ||
       (body.retorno != null && typeof body.retorno !== "string") ||
       (body.medium_nome != null && typeof body.medium_nome !== "string") ||
       (body.tipo_preferencial != null && typeof body.tipo_preferencial !== "string") ||
