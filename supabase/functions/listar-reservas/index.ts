@@ -93,9 +93,22 @@ Deno.serve(async (req: Request) => {
     if (body.tipo_gira) giraQuery = giraQuery.eq("tipo_gira", String(body.tipo_gira));
     if (body.data_inicio) giraQuery = giraQuery.gte("data_gira", String(body.data_inicio));
     if (body.data_fim) giraQuery = giraQuery.lte("data_gira", String(body.data_fim));
-    const { data: giras, error: giraError } = await giraQuery.order("data_gira", { ascending: false }).limit(500);
-    if (giraError) return reply(503, { success: false, message: "Não foi possível consultar a agenda." }, origin);
-    const giraIds = (giras ?? []).map(g => g.id);
+    // Paginação explícita evita omitir silenciosamente giras após o limite de 500.
+    const giras: Array<{id: string; titulo: string; data_gira: string; tipo_gira: string | null}> = [];
+    const batchSize = 500;
+    const maxGiras = 10000;
+    for (let offset = 0; offset < maxGiras; offset += batchSize) {
+      const { data: batch, error: giraError } = await giraQuery
+        .order("data_gira", { ascending: false })
+        .range(offset, offset + batchSize - 1);
+      if (giraError) return reply(503, { success: false, message: "Não foi possível consultar a agenda." }, origin);
+      giras.push(...(batch ?? []));
+      if (!batch || batch.length < batchSize) break;
+      if (offset + batchSize >= maxGiras) {
+        return reply(503, { success: false, message: "A agenda excede o limite operacional de consulta. Refine os filtros." }, origin);
+      }
+    }
+    const giraIds = giras.map(g => g.id);
     if (!giraIds.length) return reply(200, { success: true, role: profile.papel, data: [], giras: [], page, page_size: pageSize, total: 0 }, origin);
 
     let q = trusted.from("reservas").select(select, { count: "exact" }).in("gira_id", giraIds);
