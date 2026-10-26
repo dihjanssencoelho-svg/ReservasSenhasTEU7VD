@@ -30,6 +30,9 @@ jobs:
       - name: Testar contrato de validação de reservas
         run: deno test supabase/tests/reservation-validation.test.ts
 
+      - name: Validar sintaxe dos smoke tests HTTP
+        run: bash -n supabase/tests/edge-input-smoke.sh supabase/tests/security-smoke.sh
+
       - name: Verificar criar-reserva
         run: deno check supabase/functions/criar-reserva/index.ts
 
