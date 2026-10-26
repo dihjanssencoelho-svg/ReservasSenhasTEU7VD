@@ -57,7 +57,45 @@ begin
       and entidade_id in (rid1::text,rid2::text,ridb::text);
   if audit_count <> 3 then raise exception 'Falha: esperados 3 registros de auditoria de criação, obtidos %', audit_count; end if;
 
-  raise notice 'PASSOU: criação, duplicidade, capacidade, numeração por tipo e auditoria';
+  -- Falha simulada na escrita da auditoria: reserva e contador devem reverter juntos.
+  create or replace function public.__teu7vd_test_fail_audit()
+  returns trigger language plpgsql as $fail$
+  begin
+    if new.acao = 'reserva_criada' then
+      raise exception 'falha de auditoria simulada para teste';
+    end if;
+    return new;
+  end;
+  $fail$;
+  create trigger __teu7vd_test_fail_audit_trigger
+    before insert on public.auditoria
+    for each row execute function public.__teu7vd_test_fail_audit();
+
+  begin
+    perform public.teu7vd_criar_reserva(
+      gira_b,'Pessoa Rollback','1994-05-05','11987654325',
+      'rollback@example.invalid','Não',false,null,null,null,null
+    );
+    raise exception 'Falha: a criação deveria falhar quando a auditoria falha';
+  exception when others then
+    if sqlerrm = 'Falha: a criação deveria falhar quando a auditoria falha' then raise; end if;
+    if sqlerrm not like '%falha de auditoria simulada%' then raise; end if;
+  end;
+
+  drop trigger __teu7vd_test_fail_audit_trigger on public.auditoria;
+  drop function public.__teu7vd_test_fail_audit();
+
+  if exists(select 1 from public.reservas where gira_id=gira_b and email='rollback@example.invalid') then
+    raise exception 'Falha: reserva permaneceu após erro de auditoria';
+  end if;
+  if exists(select 1 from public.contadores_senha where tipo_gira='__teste_tipo_b' and proxima_senha <> 2) then
+    raise exception 'Falha: contador avançou apesar do rollback';
+  end if;
+  if (select count(*) from public.reservas where gira_id=gira_b) <> 1 then
+    raise exception 'Falha: registros anteriores da gira B foram alterados pelo teste de rollback';
+  end if;
+
+  raise notice 'PASSOU: criação, duplicidade, capacidade, numeração por tipo, auditoria e rollback atômico';
 end
 $test$;
 
