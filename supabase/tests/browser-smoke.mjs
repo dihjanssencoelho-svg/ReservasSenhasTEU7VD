@@ -12,7 +12,7 @@ try {
     }
   });
 
-  const response = await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
+  const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
   assert.ok(response, "A página não retornou resposta HTTP.");
   assert.equal(response.status(), 200, "O portal público não respondeu HTTP 200.");
   await assert.doesNotReject(() => page.getByRole("heading", { name: "Reserve sua senha" }).waitFor());
