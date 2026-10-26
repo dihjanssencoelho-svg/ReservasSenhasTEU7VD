@@ -62,3 +62,4 @@ Não habilitar reservas públicas enquanto qualquer teste crítico estiver pende
 | Data | Teste | Resultado | Evidência/observação |
 |---|---|---|---|
 | 26/10/2026 | Inspeção de configuração e funções | Parcial | Usuário confirmou existência dos dois nomes de segredo; três funções estão ACTIVE na versão 3. Não foi possível confirmar valores nem executar chamada HTTP ponta a ponta. Logs recentes não provam validação Turnstile. |
+| 26/10/2026 | Integração frontend estática | Parcial — arquivos conferidos após commit | Widget e callbacks de sucesso/expiração/erro presentes na branch; token só fica em memória; botão e formulário permanecem desativados; nenhum envio a `criar-reserva`. Hostname publicado e execução real ainda não confirmados. |
