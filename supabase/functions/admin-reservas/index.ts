@@ -60,9 +60,9 @@ Deno.serve(async (req: Request) => {
     return respond(400, { success: false, message: "Campos não reconhecidos." }, origin);
   }
   const actions = {
-    cancel: "teu7vd_cancelar_reserva",
-    reopen: "teu7vd_reabrir_reserva",
-    delete: "teu7vd_excluir_reserva",
+    cancel: "teu7vd_cancelar_reserva_v2",
+    reopen: "teu7vd_reabrir_reserva_v2",
+    delete: "teu7vd_excluir_reserva_v2",
   } as const;
   if (typeof body.action !== "string" || !Object.hasOwn(actions, body.action)) {
     return respond(400, { success: false, message: "Ação inválida." }, origin);
@@ -102,6 +102,7 @@ Deno.serve(async (req: Request) => {
   const { data: changed, error } = await trusted.rpc(rpc, {
     p_reserva_id: body.reservation_id,
     p_motivo: reason || null,
+    p_actor_id: userData.user.id,
   });
   if (error || changed !== true) {
     // Do not return SQL, schema, or implementation details to the browser.
