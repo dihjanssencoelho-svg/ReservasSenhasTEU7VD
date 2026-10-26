@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
 
     let q = trusted.from("reservas").select(select, { count: "exact" }).in("gira_id", giraIds);
     if (body.status) q = q.eq("status", String(body.status));
-    if (query) q = q.or("nome_completo.ilike.%" + query.replace(/[,%()]/g, " ").replace(/[*]/g, "") + "%,senha_original.ilike.%" + query.replace(/[,%()]/g, " ").replace(/[*]/g, "") + "%");
+    if (query) { const safeQuery = query.replace(/[^\\p{L}\\p{N}\\s-]/gu, " ").trim().replace(/\\s+/g, " "); if (safeQuery) q = q.or("nome_completo.ilike.%"+safeQuery+"%,senha_original.ilike.%"+safeQuery+"%"); }
     const from = (page - 1) * pageSize;
     const { data, error, count } = await q.order("created_at", { ascending: false }).range(from, from + pageSize - 1);
     if (error) return reply(503, { success: false, message: "Não foi possível consultar as reservas." }, origin);
