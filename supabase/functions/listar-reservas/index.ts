@@ -77,15 +77,12 @@ Deno.serve(async (req: Request) => {
   if (authError || !userData.user) return reply(401, { success: false, message: "Sessão inválida ou expirada." }, origin);
   const { data: profile, error: profileError } = await trusted.from("perfis_admin").select("user_id,papel,ativo").eq("user_id", userData.user.id).maybeSingle();
   if (profileError) return reply(503, { success: false, message: "Não foi possível validar as permissões." }, origin);
-  if (!profile || profile.user_id !== userData.user.id || profile.ativo !== true || !["admin", "gestor", "operador"].includes(profile.papel)) {
+  if (!profile || profile.user_id !== userData.user.id || profile.ativo !== true || profile.papel !== "admin") {
     return reply(403, { success: false, message: "Acesso administrativo não autorizado." }, origin);
   }
 
-  // Role matrix: all active roles can consult; only admin can execute sensitive changes.
-  // Operators receive a reduced dataset (no DOB, phone, email or medium name).
-  const select = profile.papel === "operador"
-    ? "id,gira_id,senha_original,senha_numero,nome_completo,preferencial,tipo_preferencial,status,tipo_gira,created_at"
-    : "id,gira_id,senha_original,senha_numero,nome_completo,data_nascimento,telefone,email,primeira_vez,retorno,medium_nome,preferencial,tipo_preferencial,descricao_preferencial,status,tipo_gira,origem,legado_importado,linha_origem,created_at,updated_at,cancelada_em,reaberta_em,excluida_em,exclusao_motivo";
+  // Acesso interno simplificado: somente perfil admin ativo pode consultar reservas.
+  const select = "id,gira_id,senha_original,senha_numero,nome_completo,data_nascimento,telefone,email,primeira_vez,retorno,medium_nome,preferencial,tipo_preferencial,descricao_preferencial,status,tipo_gira,origem,legado_importado,linha_origem,created_at,updated_at,cancelada_em,reaberta_em,excluida_em,exclusao_motivo";
 
   try {
     let giraQuery = trusted.from("giras").select("id,titulo,data_gira,tipo_gira");
