@@ -53,3 +53,15 @@ A matriz é deliberadamente conservadora. Confirmar se Gestor realmente precisa 
 - Supabase — Securing Edge Functions: https://supabase.com/docs/guides/functions/auth
 - Supabase — CORS: https://supabase.com/docs/guides/functions/cors
 - Supabase — Auth: https://supabase.com/docs/guides/auth
+
+
+## Verificações executadas no banco de homologação (26/10/2026)
+- Aplicada a migração `20261026190000_restrict_direct_reservation_table_access`.
+- Resultado SQL: `anon` e `authenticated` sem privilégio direto SELECT em `reservas` e `auditoria`.
+- Resultado SQL: `anon` e `authenticated` sem EXECUTE nas RPCs de criação de reserva e cancelamento; a verificação anterior confirmou também que criação fica disponível apenas para `service_role`.
+- Advisor de segurança: sem alertas de função SECURITY DEFINER executável por usuários não autorizados. Resta apenas INFO para `contadores_senha` com RLS e sem política, intencional porque é tabela interna e não deve ser acessada diretamente.
+- A consulta de contagem anterior retornou zero giras, reservas, contadores e auditoria; não houve criação ou importação de dados.
+- A listagem protegida e as funções administrativas continuam **não implantadas** (`list_edge_functions` retornou lista vazia). Logo, não foram possíveis testes HTTP em runtime de token, CORS, paginação e respostas por papel; esses testes permanecem bloqueadores para liberar a área.
+
+## Resultado e decisão
+**Aprovado apenas para continuar em homologação de código e permissões de banco. Não aprovado para produção.** A remoção de privilégios diretos é aplicada no banco, mas não foi feita tentativa de acesso com credenciais reais anon/authenticated via HTTP. O endpoint server-side ainda precisa de deploy controlado com variáveis secretas configuradas, usuários de teste autorizados por papel e execução do plano acima. Até lá, ações de mutação continuam desabilitadas e a reserva pública permanece desligada.
