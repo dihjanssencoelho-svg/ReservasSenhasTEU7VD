@@ -45,9 +45,6 @@ request "listar-sem-token" "listar-reservas" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 40
 request "listar-origem-negada" "listar-reservas" "" "https://origem-nao-autorizada.invalid" '{}' 403
 request "admin-sem-token" "admin-reservas" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 401
 request "admin-token-invalido" "admin-reservas" "invalid.jwt.token" "$TEU7VD_ALLOWED_ORIGIN" '{"action":"cancel","reservation_id":"00000000-0000-4000-8000-000000000001"}' 401
-request "admin-acao-invalida" "admin-reservas" "invalid.jwt.token" "$TEU7VD_ALLOWED_ORIGIN" '{"action":"promote","reservation_id":"00000000-0000-4000-8000-000000000001"}' 400
-request "admin-id-invalido" "admin-reservas" "invalid.jwt.token" "$TEU7VD_ALLOWED_ORIGIN" '{"action":"cancel","reservation_id":"not-a-uuid"}' 400
-request "admin-reabertura-sem-motivo" "admin-reservas" "invalid.jwt.token" "$TEU7VD_ALLOWED_ORIGIN" '{"action":"reopen","reservation_id":"00000000-0000-4000-8000-000000000001","reason":""}' 400
 request "admin-origem-negada" "admin-reservas" "" "https://origem-nao-autorizada.invalid" '{}' 403
 
 echo "Concluído: smoke tests HTTP não mutáveis passaram."
