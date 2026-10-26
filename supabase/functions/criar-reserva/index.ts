@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
 
   const allowedFields = new Set([
     "gira_id", "nome_completo", "data_nascimento", "telefone", "email",
-    "primeira_vez", "preferencial", "tipo_preferencial", "retorno", "medium_nome",
+    "primeira_vez", "preferencial", "tipo_preferencial", "descricao_preferencial", "retorno", "medium_nome",
     "turnstile_token",
   ]);
   if (Object.keys(body).some((key) => !allowedFields.has(key))) {
@@ -89,10 +89,8 @@ Deno.serve(async (req: Request) => {
     return response(400, { success: false, message: "Informe se necessita de atendimento preferencial." }, origin);
   }
   if (body.preferencial === true && body.tipo_preferencial === "Outro" &&
-      (typeof body.medium_nome !== "string" || !body.medium_nome.trim())) {
-    // medium_nome is not reused for a custom preferential description; keep this case blocked until
-    // the schema has a dedicated description field and the form sends it.
-    return response(400, { success: false, message: "A descrição de 'Outro' ainda precisa ser configurada." }, origin);
+      (typeof body.descricao_preferencial !== "string" || !body.descricao_preferencial.trim() || body.descricao_preferencial.trim().length > 300)) {
+    return response(400, { success: false, message: "Descreva a necessidade de atendimento preferencial (até 300 caracteres)." }, origin);
   }
 
   const remoteIp = req.headers.get("cf-connecting-ip") ?? req.headers.get("x-real-ip");
@@ -125,6 +123,7 @@ Deno.serve(async (req: Request) => {
     p_tipo_preferencial: body.preferencial ? body.tipo_preferencial : null,
     p_retorno: typeof body.retorno === "string" ? body.retorno : null,
     p_medium_nome: typeof body.medium_nome === "string" ? body.medium_nome : null,
+    p_descricao_preferencial: typeof body.descricao_preferencial === "string" ? body.descricao_preferencial : null,
   });
 
   if (error) {
