@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17131e">
+  <meta name="description" content="Portal independente de reservas de senhas do Templo Escola de Umbanda 7 Vibrações Divinas.">
+  <title>Reservas de Senhas | TEU7VD</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand-mark" aria-hidden="true"><span>7</span></div>
+    <div class="brand-text">
+      <p class="eyebrow">Templo Escola de Umbanda</p>
+      <h1>7 Vibrações Divinas</h1>
+      <p class="subtitle">Portal independente de reservas de senhas</p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="intro panel">
+      <p class="eyebrow">Seja bem-vindo(a)</p>
+      <h2>Reserve sua senha</h2>
+      <p>Este é o novo portal de reservas do TEU7VD, separado do site institucional.</p>
+      <div class="status-note" role="status" aria-live="polite">
+        <span class="status-icon" aria-hidden="true">i</span>
+        <div>
+          <strong>Portal em preparação</strong>
+          <p>As reservas serão liberadas após a configuração do banco, revisão das vagas e homologação dos dados.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="giras-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Agenda</p>
+          <h2 id="giras-title">Giras disponíveis</h2>
+        </div>
+        <span class="section-symbol" aria-hidden="true">✦</span>
+      </div>
+      <div id="giras-list" class="empty-state">
+        <div class="calendar-icon" aria-hidden="true">▦</div>
+        <h3>Agenda em configuração</h3>
+        <p>As datas, horários e vagas aparecerão aqui quando forem validados pela administração.</p>
+      </div>
+    </section>
+
+    <section class="panel form-panel" aria-labelledby="reservation-title">
+      <p class="eyebrow">Atendimento</p>
+      <h2 id="reservation-title">Solicitar reserva</h2>
+      <p class="muted">O formulário ficará disponível após a homologação. Esta versão não coleta nem grava dados pessoais.</p>
+      <form id="reservation-form" autocomplete="off">
+        <label for="full-name">Nome completo</label>
+        <input id="full-name" name="full-name" disabled placeholder="Disponível após homologação">
+        <label for="event">Gira</label>
+        <select id="event" name="event" disabled>
+          <option>Seleção indisponível nesta etapa</option>
+        </select>
+        <button type="button" disabled>Reservas ainda não liberadas</button>
+      </form>
+      <p id="config-message" class="small muted">Ambiente não conectado ao Supabase. Nenhuma reserva será gravada.</p>
+    </section>
+
+    <section class="privacy-note">
+      <p><strong>Privacidade:</strong> nenhum dado de consulente é solicitado nesta versão inicial. A planilha de migração não foi importada.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p><strong>TEU7VD</strong> · Templo Escola de Umbanda 7 Vibrações Divinas</p>
+    <p>Portal de reservas independente do site institucional.</p>
+  </footer>
+  <script src="./assets/app.js"></script>
+</body>
+</html>
