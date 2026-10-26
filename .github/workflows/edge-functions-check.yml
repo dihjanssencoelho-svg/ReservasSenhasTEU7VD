@@ -51,3 +51,21 @@ jobs:
 
       - name: Verificar admin-reservas
         run: deno check supabase/functions/admin-reservas/index.ts
+
+  runtime-smoke:
+    name: Smoke HTTP real sem mutações
+    # Não chamar o backend real a partir de pull requests de terceiros.
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Executar testes negativos contra as Edge Functions implantadas
+        env:
+          SUPABASE_URL: https://emwnytvlbpgiwqswojze.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_gKuJbxS6UBnsodjgdasDIQ_G2k_FL31
+          TEU7VD_ALLOWED_ORIGIN: https://dihjanssencoelho-svg.github.io
+        run: bash supabase/tests/edge-input-smoke.sh
+
