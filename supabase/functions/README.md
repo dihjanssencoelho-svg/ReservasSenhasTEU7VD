@@ -1,37 +1,42 @@
-# Edge Function de reservas — implantação pendente
+# Edge Functions TEU7VD — estado e configuração
 
-Código versionado em `supabase/functions/criar-reserva/index.ts`. **Ainda não foi implantado** e o formulário segue desativado.
+As três Edge Functions já estão implantadas no projeto Supabase `emwnytvlbpgiwqswojze` e foram verificadas como ativas (versão 2). O formulário público continua desativado e não há importação de dados pessoais.
 
-## Motivo do bloqueio
-A função foi construída para falhar de forma segura se não estiverem configurados:
-- `TEU7VD_ALLOWED_ORIGIN`: origem exata permitida do portal após confirmar o domínio definitivo.
-- `TURNSTILE_SECRET_KEY`: segredo do Cloudflare Turnstile.
-- As chaves secretas padrão do Supabase, lidas de `SUPABASE_SECRET_KEYS` no ambiente da Edge Function.
+## Variáveis de ambiente
 
-Não inserir segredos em arquivos GitHub ou no JavaScript do navegador. Configure-os em Supabase Dashboard → Edge Functions → Secrets. O portal deve receber somente a chave publishable.
+### Injetadas automaticamente pelo Supabase
+- `SUPABASE_URL`
+- `SUPABASE_SECRET_KEYS`: dicionário JSON de chaves secretas, com a chave `default` quando configurada no projeto.
 
-## Proteções implementadas no código
-- Somente método POST; validação de origem e CORS.
-- Limite de tamanho do payload e lista de campos permitidos.
-- Validação de formatos e tipos preferenciais.
-- Verificação do token Turnstile antes de executar a RPC.
-- Chave secreta lida somente no ambiente server-side.
-- Chamada à RPC transacional `teu7vd_criar_reserva`.
-- Resposta pública genérica, sem número de senha, ID da reserva ou dados sensíveis.
-- Mensagens de erro controladas para não expor detalhes internos do banco.
+**Não crie um segredo personalizado chamado `SUPABASE_SECRET_KEYS`**: o prefixo `SUPABASE_` é reservado e o Supabase fornece essa variável automaticamente. O código das funções já lê `SUPABASE_SECRET_KEYS` e usa `default`.
 
-## Antes de implantar
-1. Confirmar a URL/origem final do portal e cadastrar essa origem no Turnstile.
-2. Criar o widget Turnstile e configurar a chave secreta no Supabase; a chave pública/site key será usada apenas no frontend.
-3. Confirmar que `SUPABASE_SECRET_KEYS` existe no ambiente da função e contém a chave padrão esperada. Não copiar nem imprimir o valor.
-4. Implantar com verificação JWT desabilitada somente porque a função faz sua própria validação por origem + Turnstile; não remover essas validações.
-5. Fazer testes de chamadas sem captcha, captcha inválido, origem não permitida, campos inválidos, duplicidade, limite de vagas, e resposta sem senha.
-6. Implementar rate limiting adicional no gateway/backend antes de abrir reservas ao público, se o tráfego/risco justificar; CORS não é autenticação e não impede clientes fora do navegador.
+O segredo personalizado `TEU7VD_SECRET_KEYS` não é lido pelo código atual e é desnecessário. Pode ser removido manualmente na página de Edge Function Secrets depois de confirmar que não é usado por outra função.
 
-## Testes SQL da etapa
-Foi executado teste transacional revertido para verificar:
-- Reserva aceita com preferência `Outro` quando a descrição está presente.
-- Descrição obrigatória para `Outro`.
-- Senha inicial igual a 1.
-- Resposta de banco sem campo `senha` ou `ticket`; a Edge Function remove também o ID interno da resposta pública.
-Nenhum registro de teste permaneceu no banco.
+### Segredos personalizados necessários
+- `TEU7VD_ALLOWED_ORIGIN`: origem exata do portal, por exemplo `https://<usuario>.github.io` **somente se esse for o domínio final confirmado**. Não inclua caminho como `/ReservasSenhasTEU7VD`, barra final, query string ou fragmento.
+- `TURNSTILE_SECRET_KEY`: segredo privado do widget Turnstile criado no Cloudflare. Nunca colocar no HTML, JavaScript, GitHub ou nesta documentação.
+
+## Turnstile: passos necessários antes de liberar reservas
+
+1. Confirmar o hostname definitivo do portal e se o repositório será publicado no GitHub Pages ou em outro domínio.
+2. No Cloudflare Dashboard → Turnstile, criar um widget do tipo Managed e autorizar apenas o hostname final.
+3. Guardar o **sitekey** público para integração no frontend e cadastrar a **secret key** como `TURNSTILE_SECRET_KEY` em Supabase → Edge Functions → Secrets.
+4. Definir `TEU7VD_ALLOWED_ORIGIN` com a origem exata e confirmar que corresponde ao cabeçalho `Origin` do portal.
+5. Integrar o widget ao formulário e enviar o token de Turnstile para `criar-reserva`. A página atual não contém widget e o formulário segue intencionalmente desativado.
+6. Executar os smoke tests sem mutações, testes com contas artificiais e homologação ponta a ponta antes de habilitar reservas.
+
+O sitekey pode aparecer no frontend; a secret key nunca. A criação de widget requer acesso autenticado à conta Cloudflare. Não inventar nem reutilizar chaves de produção ou de teste para tráfego real.
+
+## Endpoints implantados
+
+- `criar-reserva`: valida origem, payload e token Turnstile; a verificação JWT do gateway está desativada porque o endpoint público faz validação própria e falha de forma segura sem configuração.
+- `listar-reservas`: JWT obrigatório e verificação server-side do perfil/papel.
+- `admin-reservas`: JWT obrigatório e exige perfil ativo `admin` no servidor.
+
+## Restrições mantidas
+
+- Não habilitar formulário público nesta etapa.
+- Não importar a planilha histórica nem dados pessoais.
+- Não criar reservas reais durante testes.
+- Não alterar o site institucional separado.
+- Não implantar código novo na branch `main` sem revisão e autorização específica.
