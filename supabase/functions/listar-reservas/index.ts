@@ -118,7 +118,10 @@ Deno.serve(async (req: Request) => {
     const { data, error, count } = await q.order("created_at", { ascending: false }).range(from, from + pageSize - 1);
     if (error) return reply(503, { success: false, message: "Não foi possível consultar as reservas." }, origin);
     const titleById = new Map((giras ?? []).map(g => [g.id, g]));
-    const safeData = (data ?? []).map(row => ({ ...row, gira: titleById.get(row.gira_id) ?? null }));
+    // Supabase JS infere ParserError quando a seleção dinâmica é uma união de strings.
+    // Normalizamos apenas a camada de resposta; a consulta e as permissões permanecem inalteradas.
+    const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
+    const safeData = rows.map(row => ({ ...row, gira: titleById.get(String(row.gira_id)) ?? null }));
     return reply(200, { success: true, role: profile.papel, data: safeData, giras: giras ?? [], page, page_size: pageSize, total: count ?? 0 }, origin);
   } catch {
     return reply(503, { success: false, message: "Consulta temporariamente indisponível." }, origin);
