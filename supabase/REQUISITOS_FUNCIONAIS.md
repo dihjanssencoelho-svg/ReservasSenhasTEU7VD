@@ -9,7 +9,7 @@ Este documento registra as regras institucionais confirmadas para a migração d
 
 ## 2. Capacidade e quantidade de registros
 - Não impor limite global artificial de 999 registros.
-- A aplicação deve suportar o crescimento normal da base sem deixar de registrar reservas por causa de um limite fixo de registros.
+- A aplicação deve suportar o crescimento normal da base sem deixar de registrar reservas por causa de um limite fixo.
 - Se uma limitação técnica comprovadamente obrigatória exigir um teto, utilizar no mínimo 99.999 registros e comunicar a limitação; não usar 999.
 - O limite de vagas por gira/data continua sendo uma regra operacional separada e deve ser validado no servidor/banco de forma transacional.
 - Reservas canceladas não contam para a ocupação de vagas.
@@ -21,9 +21,9 @@ Este documento registra as regras institucionais confirmadas para a migração d
 - Registrar a ação em auditoria, incluindo responsável, data/hora e identificador da reserva, sem expor dados pessoais desnecessários.
 
 ## 4. Limite por pessoa e duplicidade
-- O limite institucional é de uma reserva por pessoa.
-- A validação deve ocorrer no servidor, não apenas no navegador, e ser protegida contra requisições simultâneas.
-- O critério de identificação da pessoa e o escopo exato do limite (por gira/data ou global entre todas as giras) precisam ser definidos antes da implementação, para não bloquear indevidamente reservas legítimas nem permitir duplicidade.
+- O limite institucional é de uma reserva por pessoa **por gira/data**. A mesma pessoa pode reservar em datas/giras diferentes.
+- A identificação e validação devem ocorrer no servidor, não apenas no navegador, e ser protegidas contra requisições simultâneas.
+- A validação deve normalizar os dados de identificação para evitar duplicidades por diferenças de formatação. Reservas canceladas devem ser tratadas conforme a política de reativação; a vaga é liberada, mas o histórico da reserva permanece.
 
 ## 5. Atendimento preferencial
 - Valores oficiais permitidos: Gestante, Idoso, Criança de Colo, PCD e Outro.
@@ -32,10 +32,11 @@ Este documento registra as regras institucionais confirmadas para a migração d
 - Validar os valores no cliente e no servidor. Não inventar outros tipos sem aprovação.
 
 ## 6. Sequência de senhas
-- A senha deve seguir sequência própria para cada tipo de gira.
-- Não assumir uma sequência única global para todas as giras.
-- A regra exata de sequência por tipo de gira (por exemplo, prefixo, numeração inicial, reinício e tratamento de senhas legadas) deve ser configurada e testada antes de liberar reservas.
+- Cada tipo de gira tem uma sequência de senhas independente, iniciada em **1**.
+- A numeração deve ser única dentro da sequência do tipo de gira e avançar de forma segura mesmo com reservas simultâneas.
+- A regra de reinício deve respeitar a sequência do tipo de gira; não compartilhar uma sequência global entre tipos diferentes.
 - Preservar o número original de senha nos registros importados. Nunca renumerar silenciosamente dados históricos; conflitos devem ser apontados para revisão.
+- Para evitar ambiguidade na implementação, cada gira/data deve estar associada a um tipo de gira identificado de forma consistente; o contador deve ser separado por esse tipo. Caso haja uma regra adicional de reinício por data, ela deverá ser documentada antes da publicação.
 
 ## 7. Administração e controle de acesso
 - O painel administrativo exige autenticação real.
