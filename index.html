@@ -68,6 +68,24 @@
     </section>
   </main>
 
+  <section class="container team-access-wrap" aria-labelledby="team-access-title">
+    <button id="team-access-toggle" class="secondary-button" type="button" aria-expanded="false" aria-controls="team-access">Acesso da equipe</button>
+    <section id="team-access" class="panel team-access" hidden>
+      <p class="eyebrow">Área restrita</p>
+      <h2 id="team-access-title">Acesso da equipe TEU7VD</h2>
+      <p class="muted">Entre com sua conta institucional autorizada. Consulentes e contas sem perfil ativo não têm acesso ao painel.</p>
+      <form id="team-login-form" autocomplete="on">
+        <label for="team-email">E-mail</label>
+        <input id="team-email" name="username" type="email" autocomplete="username" required maxlength="254" placeholder="seu e-mail de acesso">
+        <label for="team-password">Senha</label>
+        <input id="team-password" name="password" type="password" autocomplete="current-password" required minlength="1" maxlength="256" placeholder="Sua senha">
+        <button id="team-login-submit" type="submit">Entrar</button>
+      </form>
+      <p id="team-login-status" class="small muted" role="status" aria-live="polite"></p>
+      <section id="team-session" class="team-session" hidden aria-live="polite"></section>
+    </section>
+  </section>
+
   <footer class="site-footer">
     <p><strong>TEU7VD</strong> · Templo Escola de Umbanda 7 Vibrações Divinas</p>
     <p>Portal de reservas independente do site institucional.</p>
