@@ -101,24 +101,117 @@ function showTeamSession(role) {
   if (!teamSession) return;
   teamSession.replaceChildren();
   const heading = document.createElement("h3");
-  heading.textContent = "Identidade confirmada: " + TEAM_ROLE_LABELS[role];
+  heading.textContent = "Área administrativa — " + TEAM_ROLE_LABELS[role];
   const detail = document.createElement("p");
-  detail.textContent = "A autenticação foi validada, mas o painel operacional ainda não está liberado. Nenhuma ação administrativa pode ser executada nesta fase.";
-  const logout = document.createElement("button");
-  logout.type = "button";
-  logout.textContent = "Encerrar sessão";
-  logout.addEventListener("click", async () => {
-    let token = null;
-    try { token = JSON.parse(sessionStorage.getItem(TEAM_SESSION_KEY) || "null")?.access_token; } catch { /* sessão inválida */ }
-    clearTeamSession();
-    setTeamStatus("Sessão encerrada neste navegador.");
-    if (token) {
-      try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* a sessão local já foi encerrada */ }
+  detail.className = "muted";
+  detail.textContent = role === "operador"
+    ? "Consulta protegida. Dados de contato, nascimento e identificação do médium são ocultados para este papel. Ações sensíveis estão bloqueadas durante a homologação."
+    : "Consulta protegida de reservas. Cancelar, reabrir e excluir permanecem bloqueados até a homologação de permissões e APIs.";
+  const filters = document.createElement("form");
+  filters.className = "admin-filters";
+  filters.innerHTML = `
+    <label for="admin-search">Nome ou senha</label><input id="admin-search" name="query" maxlength="100" placeholder="Buscar por nome ou senha">
+    <label for="admin-status">Status</label><select id="admin-status" name="status"><option value="">Todos</option><option value="ativa">Ativa</option><option value="cancelada">Cancelada</option><option value="pendente_validacao">Pendente de validação</option><option value="excluida">Excluída</option></select>
+    <label for="admin-gira">Gira</label><select id="admin-gira" name="gira_id"><option value="">Todas as giras</option></select>
+    <label for="admin-type">Tipo de gira</label><input id="admin-type" name="tipo_gira" maxlength="80" placeholder="Filtrar tipo (opcional)">
+    <div class="admin-date-row"><div><label for="admin-from">Data da gira — de</label><input id="admin-from" name="data_inicio" type="date"></div><div><label for="admin-to">até</label><input id="admin-to" name="data_fim" type="date"></div></div>
+    <div class="admin-filter-actions"><button type="submit">Pesquisar</button><button type="reset" class="secondary-button">Limpar filtros</button></div>`;
+  const status = document.createElement("p");
+  status.className = "small muted";
+  status.setAttribute("role", "status");
+  status.setAttribute("aria-live", "polite");
+  const results = document.createElement("div");
+  results.className = "admin-results";
+  const pagination = document.createElement("div");
+  pagination.className = "admin-pagination";
+  let page = 1;
+  let currentGiras = [];
+  const getToken = () => {
+    try {
+      const session = JSON.parse(sessionStorage.getItem(TEAM_SESSION_KEY) || "null");
+      if (!session?.access_token || !session.expires_at || Date.now() >= session.expires_at - 30000) return null;
+      return session.access_token;
+    } catch { return null; }
+  };
+  const fetchReservations = async () => {
+    const token = getToken();
+    if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
+    status.textContent = "Consultando reservas protegidas…";
+    results.replaceChildren();
+    pagination.replaceChildren();
+    const formData = new FormData(filters);
+    const payload = { page, page_size: 25 };
+    for (const key of ["query", "status", "gira_id", "tipo_gira", "data_inicio", "data_fim"]) {
+      const value = String(formData.get(key) || "").trim();
+      if (value) payload[key] = value;
     }
+    try {
+      const response = await fetch(SUPABASE_URL + "/functions/v1/listar-reservas", {
+        method: "POST",
+        headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify(payload), cache: "no-store"
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) {
+        if (response.status === 401) { clearTeamSession(); setTeamStatus("Sessão expirada ou inválida. Entre novamente."); return; }
+        throw new Error("Consulta não autorizada ou indisponível.");
+      }
+      currentGiras = Array.isArray(result.giras) ? result.giras : [];
+      const giraSelect = filters.elements.namedItem("gira_id");
+      const selected = String(formData.get("gira_id") || "");
+      giraSelect.replaceChildren(new Option("Todas as giras", ""));
+      for (const gira of currentGiras) giraSelect.add(new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id));
+      giraSelect.value = selected;
+      status.textContent = result.total + " reserva(s) encontrada(s) · página " + result.page + " · papel: " + TEAM_ROLE_LABELS[result.role];
+      if (!result.data.length) {
+        results.innerHTML = '<div class="empty-state"><h3>Nenhuma reserva encontrada</h3><p>Altere os filtros e tente novamente.</p></div>';
+      } else {
+        const table = document.createElement("table");
+        table.className = "admin-table";
+        const headers = role === "operador"
+          ? ["Senha", "Nome", "Gira", "Status", "Preferencial", "Ações"]
+          : ["Senha", "Nome", "Gira", "Contato", "Nascimento", "Status", "Preferencial", "Ações"];
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        headers.forEach(label => { const th = document.createElement("th"); th.textContent = label; headerRow.append(th); });
+        thead.append(headerRow);
+        const tbody = document.createElement("tbody");
+        for (const item of result.data) {
+          const tr = document.createElement("tr");
+          const values = role === "operador"
+            ? [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"]
+            : [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", [item.telefone, item.email].filter(Boolean).join(" · ") || "—", item.data_nascimento ? formatDate(item.data_nascimento) : "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"];
+          values.forEach(value => { const td = document.createElement("td"); td.textContent = String(value ?? "—"); tr.append(td); });
+          const actions = document.createElement("td");
+          const locked = document.createElement("button");
+          locked.type = "button"; locked.disabled = true;
+          locked.textContent = "Ações bloqueadas";
+          locked.title = role === "admin" ? "Liberar somente após testes de segurança e homologação." : "Este papel não pode executar ações sensíveis.";
+          actions.append(locked); tr.append(actions); tbody.append(tr);
+        }
+        table.append(thead, tbody);
+        const scroll = document.createElement("div"); scroll.className = "admin-table-scroll"; scroll.append(table); results.append(scroll);
+      }
+      const pageCount = Math.max(1, Math.ceil(result.total / result.page_size));
+      if (page > 1) { const prev = document.createElement("button"); prev.type = "button"; prev.className = "secondary-button"; prev.textContent = "Anterior"; prev.addEventListener("click", () => { page--; fetchReservations(); }); pagination.append(prev); }
+      if (page < pageCount) { const next = document.createElement("button"); next.type = "button"; next.textContent = "Próxima"; next.addEventListener("click", () => { page++; fetchReservations(); }); pagination.append(next); }
+    } catch {
+      status.textContent = "Não foi possível carregar a listagem protegida. Nenhuma ação foi executada.";
+    }
+  };
+  filters.addEventListener("submit", event => { event.preventDefault(); page = 1; fetchReservations(); });
+  filters.addEventListener("reset", () => { page = 1; setTimeout(fetchReservations, 0); });
+  const logout = document.createElement("button");
+  logout.type = "button"; logout.className = "secondary-button"; logout.textContent = "Encerrar sessão";
+  logout.addEventListener("click", async () => {
+    const token = getToken();
+    clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
+    if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  teamSession.append(heading, detail, logout);
+  teamSession.append(heading, detail, filters, status, results, pagination, logout);
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
+  fetchReservations();
 }
 
 teamAccessToggle?.addEventListener("click", () => {
