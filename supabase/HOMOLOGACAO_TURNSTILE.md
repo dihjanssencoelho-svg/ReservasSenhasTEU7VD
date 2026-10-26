@@ -70,3 +70,10 @@ Não habilitar reservas públicas enquanto qualquer teste crítico estiver pende
 | 26/10/2026 | Revisão dos smoke tests versionados | Preparados, não executados | `supabase/tests/edge-input-smoke.sh` realiza apenas requisições com payload incompleto/origem inválida e endpoints protegidos sem token; não precisa de dados de consulentes nem deve criar registros. Execução real depende de um runner com rede e variáveis configuradas. |
 
 | 26/10/2026 | Captura do usuário — Settings → Pages | Confirmado: Pages desativado | A captura mostra “O GitHub Pages está atualmente desativado” e Ramo = “Nenhum”. Logo, não existe site publicado via Pages nesse repositório neste momento. Não habilitar `main` sem revisão; a branch de homologação contém o widget, mas ainda não passou por testes de runtime. |
+
+## Próxima execução automatizada
+
+- A branch possui `.github/workflows/edge-functions-check.yml`, que executa testes unitários de validação, `bash -n` nos scripts smoke e `deno check` nas três Edge Functions.
+- O workflow dispara em push para `preparacao-homologacao`; esta atualização documental serve para iniciar a verificação estática, sem implantar Pages, sem chamar endpoints de produção e sem criar reservas.
+- Os smoke tests HTTP não foram executados por esta alteração. Eles exigem execução separada com rede e variáveis de ambiente de homologação.
+- GitHub Pages permanece desativado conforme a captura do proprietário; não selecionar `main` nem promover o frontend antes dos resultados de CI e revisão.
