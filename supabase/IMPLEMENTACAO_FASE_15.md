@@ -12,7 +12,7 @@
 
 ## Arquivos
 
-- [Migração SQL](./migrations/20261026190000_teu7vd_admin_rpc_actor_and_gira_pagination.sql)
+- [Migração SQL](./migrations/20261026181721_teu7vd_admin_rpc_actor_and_gira_pagination.sql)
 - [Edge Function administrativa](./functions/admin-reservas/index.ts)
 - [Edge Function de listagem](./functions/listar-reservas/index.ts)
 
