@@ -87,3 +87,9 @@ button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-all
   .brand-mark { width: 54px; height: 54px; flex-basis: 54px; font-size: 2.2rem; }
   .container { width: calc(100% - 1rem); margin: 1rem auto; }
 }
+/* Agenda pública de giras */
+.giras-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .85rem; margin-top: 1rem; }
+.gira-card { padding: 1.1rem; border: 1px solid var(--line); border-radius: 12px; background: rgba(23,19,30,.72); }
+.gira-card h3 { color: var(--gold-light); font-family: Georgia, serif; font-size: 1.2rem; }
+.gira-card p { overflow-wrap: anywhere; }
+.gira-vacancies { margin: .75rem 0 .25rem; font-weight: 800; color: var(--gold-light); }
