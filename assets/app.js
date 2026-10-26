@@ -159,8 +159,10 @@ function showTeamSession(role) {
       currentGiras = Array.isArray(result.giras) ? result.giras : [];
       const giraSelect = filters.elements.namedItem("gira_id");
       const selected = String(formData.get("gira_id") || "");
-      giraSelect.replaceChildren(new Option("Todas as giras", ""));
-      for (const gira of currentGiras) giraSelect.add(new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id));
+      if (giraSelect.options.length <= 1) {
+        giraSelect.replaceChildren(new Option("Todas as giras", ""));
+        for (const gira of currentGiras) giraSelect.add(new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id));
+      }
       giraSelect.value = selected;
       status.textContent = result.total + " reserva(s) encontrada(s) · página " + result.page + " · papel: " + TEAM_ROLE_LABELS[result.role];
       if (!result.data.length) {
