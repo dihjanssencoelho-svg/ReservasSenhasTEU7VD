@@ -23,7 +23,7 @@ function secretKey(): string | null {
   } catch { return null; }
 }
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const validDate = (s: unknown) => { if (typeof s !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return false; const d = new Date(s + "T00:00:00.000Z"); return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s; };
+const validDate = (s: unknown) => { if (typeof s !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false; const d = new Date(s + "T00:00:00.000Z"); return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s; };
 
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin");
@@ -88,7 +88,7 @@ Deno.serve(async (req: Request) => {
 
     let q = trusted.from("reservas").select(select, { count: "exact" }).in("gira_id", giraIds);
     if (body.status) q = q.eq("status", String(body.status));
-    if (query) { const safeQuery = query.replace(/[^\\p{L}\\p{N}\\s-]/gu, " ").trim().replace(/\\s+/g, " "); if (safeQuery) q = q.or("nome_completo.ilike.%"+safeQuery+"%,senha_original.ilike.%"+safeQuery+"%"); }
+    if (query) { const safeQuery = query.replace(/[^\p{L}\p{N}\s-]/gu, " ").trim().replace(/\s+/g, " "); if (safeQuery) q = q.or("nome_completo.ilike.%"+safeQuery+"%,senha_original.ilike.%"+safeQuery+"%"); }
     const from = (page - 1) * pageSize;
     const { data, error, count } = await q.order("created_at", { ascending: false }).range(from, from + pageSize - 1);
     if (error) return reply(503, { success: false, message: "Não foi possível consultar as reservas." }, origin);
