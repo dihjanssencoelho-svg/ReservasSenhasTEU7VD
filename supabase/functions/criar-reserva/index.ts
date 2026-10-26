@@ -48,12 +48,20 @@ Deno.serve(async (req: Request) => {
     return response(403, { success: false, message: "Origem não autorizada." }, origin);
   }
 
-  const contentLength = Number(req.headers.get("content-length") ?? "0");
-  if (contentLength > 12000) return response(413, { success: false, message: "Solicitação muito grande." }, origin);
-
+  let rawBody: string;
+  try {
+    rawBody = await req.text();
+  } catch {
+    return response(400, { success: false, message: "Solicitação inválida." }, origin);
+  }
+  if (new TextEncoder().encode(rawBody).byteLength > 12000) {
+    return response(413, { success: false, message: "Solicitação muito grande." }, origin);
+  }
   let body: Record<string, unknown>;
   try {
-    body = await req.json();
+    const parsed: unknown = JSON.parse(rawBody);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("invalid body");
+    body = parsed as Record<string, unknown>;
   } catch {
     return response(400, { success: false, message: "Solicitação inválida." }, origin);
   }
@@ -75,10 +83,17 @@ Deno.serve(async (req: Request) => {
   const email = (body.email as string).trim();
   const phone = (body.telefone as string).trim();
   const dob = body.data_nascimento as string;
+  const parsedDob = /^\d{4}-\d{2}-\d{2}$/.test(dob) ? new Date(dob + "T00:00:00.000Z") : null;
+  const validDob = parsedDob !== null && !Number.isNaN(parsedDob.getTime()) && parsedDob.toISOString().slice(0, 10) === dob;
   if (name.length > 180 || email.length > 254 || phone.length > 32 ||
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(dob) ||
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.gira_id as string)) {
+      !validDob ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.gira_id as string) ||
+      typeof body.primeira_vez !== "string" ||
+      (body.retorno != null && typeof body.retorno !== "string") ||
+      (body.medium_nome != null && typeof body.medium_nome !== "string") ||
+      (body.tipo_preferencial != null && typeof body.tipo_preferencial !== "string") ||
+      (body.descricao_preferencial != null && typeof body.descricao_preferencial !== "string")) {
     return response(400, { success: false, message: "Confira os dados informados." }, origin);
   }
   if (body.preferencial === true &&
