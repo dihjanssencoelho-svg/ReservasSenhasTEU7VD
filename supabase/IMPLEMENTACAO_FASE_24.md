@@ -15,5 +15,6 @@ Transformar as validações de entrada da Edge Function de criação de reservas
 - O site institucional separado permanece intocado e as reservas públicas continuam desativadas.
 
 ## Validação
-- Execução local não realizada nesta etapa.
-- GitHub Actions acionado pelo commit do workflow: run 28, ID `40383255504`. O resultado ainda precisa ser confirmado.
+- Primeira execução do GitHub Actions (run 28, ID `40383255504`) encontrou falhas nos testes: as expressões regulares foram inicialmente gravadas com escapes duplicados, e uma expectativa de teste não refletia a validação de campo obrigatório.
+- Correção aplicada nos escapes e na expectativa dos testes nos commits `6dea0c0641c5655ca12293ef334d7f9a0fb7d12b` e `a6867ff5307ff3cb7314306a4ba48c7f3bce4a18`.
+- A nova execução do CI precisa concluir antes de considerar a fase validada. Execução local não realizada nesta etapa.
