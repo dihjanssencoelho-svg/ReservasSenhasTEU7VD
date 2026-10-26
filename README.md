@@ -9,6 +9,9 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - Frontend consulta apenas a agenda pública publicada; formulário segue desativado.
 - Três Edge Functions estão implantadas no projeto Supabase e ativas (versão 2): `criar-reserva`, `listar-reservas` e `admin-reservas`.
 - Portal não foi publicado/liberado para reservas.
+- Widget Cloudflare Turnstile criado em modo Managed para o hostname padrão pretendido do GitHub Pages: `dihjanssencoelho-svg.github.io`.
+- Sitekey pública do widget: `0x4AAAAAAFnEzhpEH4Texj_-`.
+- O hostname foi definido como destino pretendido; isso **não** confirma que o GitHub Pages esteja habilitado ou publicado.
 
 ## Arquivos principais
 - `index.html`: entrada do portal.
@@ -36,17 +39,19 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - O frontend usa apenas chave publishable e RLS para ler a agenda pública.
 - `SUPABASE_SECRET_KEYS` é fornecida automaticamente pelo Supabase às Edge Functions; não cadastrar um segredo personalizado com esse nome.
 - `TEU7VD_ALLOWED_ORIGIN` e `TURNSTILE_SECRET_KEY` precisam ser definidos em Edge Function Secrets.
-- O widget Turnstile ainda precisa ser criado no Cloudflare e integrado ao formulário; seu sitekey é público, mas a secret key deve permanecer apenas no servidor.
+- A secret key do Turnstile é confidencial e deve ser configurada somente nos segredos das Edge Functions no Supabase; nunca versionar nem colocar no navegador.
+- A sitekey do widget é pública e pode ser integrada ao frontend durante a preparação, mas o formulário deve permanecer desativado até a homologação completa.
 - Acesso administrativo exige Supabase Auth e perfil ativo com papel autorizado.
 - Não versionar dados pessoais de consulentes.
 
 ## Bloqueios antes de liberar reservas
-1. Confirmar o domínio/hostname definitivo do portal.
-2. Criar o widget Turnstile para esse hostname e cadastrar a secret key no Supabase.
-3. Configurar `TEU7VD_ALLOWED_ORIGIN` com a origem exata.
-4. Integrar o sitekey e o token Turnstile ao formulário.
-5. Executar smoke tests e homologação ponta a ponta com contas artificiais.
-6. Configurar/verificar a conta administrativa autorizada.
-7. Só então considerar publicação e habilitação do formulário.
+1. Confirmar que o hostname definitivo será `dihjanssen-coelho-svg.github.io`? Não; usar o hostname efetivamente configurado acima, `dihjanssen-coelho-svg.github.io` não foi configurado.
+2. Confirmar/ativar a configuração de GitHub Pages apenas quando houver autorização explícita para publicar.
+3. Cadastrar `TURNSTILE_SECRET_KEY` em Supabase Edge Function Secrets a partir da chave secreta do widget Cloudflare.
+4. Configurar `TEU7VD_ALLOWED_ORIGIN` como `https://dihjanssen-coelho-svg.github.io` somente se esse for o hostname efetivo confirmado para o repositório.
+5. Integrar o sitekey e o token Turnstile ao formulário.
+6. Executar smoke tests e homologação ponta a ponta com contas artificiais.
+7. Configurar/verificar a conta administrativa autorizada.
+8. Só então considerar publicação e habilitação do formulário.
 
 Não habilitar GitHub Pages nem liberar reservas até que os bloqueios sejam resolvidos. O site institucional separado permanece intocado.
