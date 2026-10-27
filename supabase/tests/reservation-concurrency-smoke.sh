@@ -94,7 +94,7 @@ pid4=$!
 wait "$pid3"; wait "$pid4"
 
 SUCCESS="$(awk '$0 == "success" { n++ } END { print n+0 }' "$TMP"/status-num-*)"
-REJECTED="$(awk '$0 == "rejected" { n++ } END { print n+0 }' "$TMP"/status-num-*)
+REJECTED="$(awk '$0 == "rejected" { n++ } END { print n+0 }' "$TMP"/status-num-*)"
 echo "Diagnóstico numeração: sucessos=$SUCCESS rejeições=$REJECTED" >&2
 if [ "$SUCCESS" -ne 2 ] || [ "$REJECTED" -ne 0 ]; then
   echo "FALHA: numeração concorrente esperava 2 sucessos; obtido $SUCCESS sucessos/$REJECTED rejeições." >&2
