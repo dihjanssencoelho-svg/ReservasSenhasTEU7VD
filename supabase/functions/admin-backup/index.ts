@@ -6,7 +6,7 @@ function reply(status:number,body:Record<string,unknown>,origin:string|null){
  return new Response(JSON.stringify(body),{status,headers:h});
 }
 function secretKey():string|null{try{const v=JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")??"{}");return typeof v.default==="string"?v.default:null;}catch{return null;}}
-async function allRows(client:ReturnType<typeof createClient>,table:string,select:string){
+async function allRows(client:any,table:string,select:string){
  const rows:Record<string,unknown>[]=[]; const size=500;
  for(let offset=0;offset<10000;offset+=size){
   const {data,error}=await client.from(table).select(select).range(offset,offset+size-1);
