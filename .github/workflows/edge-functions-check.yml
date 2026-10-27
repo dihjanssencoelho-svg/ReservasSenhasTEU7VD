@@ -13,6 +13,12 @@ on:
 permissions:
   contents: read
 
+# Evita duas inicializações Supabase simultâneas para o mesmo commit/branch,
+# reduzindo pulls duplicados e limites transitórios do registry de imagens.
+concurrency:
+  group: teu7vd-homologacao-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   deno-check:
     name: Verificação estática Deno
