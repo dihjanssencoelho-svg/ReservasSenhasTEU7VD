@@ -50,26 +50,45 @@
     <section class="panel form-panel" aria-labelledby="reservation-title">
       <p class="eyebrow">Atendimento</p>
       <h2 id="reservation-title">Solicitar reserva</h2>
-      <p class="muted">O formulário permanece desativado até a conclusão dos testes de segurança. Esta etapa não coleta nem grava dados pessoais.</p>
+      <p class="muted">Preencha os dados necessários para solicitar sua reserva. O envio depende da verificação de segurança e da disponibilidade de vagas.</p>
       <form id="reservation-form" autocomplete="off">
         <label for="full-name">Nome completo</label>
-        <input id="full-name" name="full-name" disabled placeholder="Disponível após homologação">
+        <input id="full-name" name="nome_completo" required maxlength="180" autocomplete="name" placeholder="Seu nome completo">
         <label for="event">Gira</label>
-        <select id="event" name="event" disabled>
-          <option>Seleção indisponível nesta etapa</option>
+        <select id="event" name="gira_id" required>
+          <option value="">Carregando giras disponíveis…</option>
         </select>
-        <div class="turnstile-wrap">
-          <p class="small muted">Verificação de segurança (somente homologação; o envio de reservas continua bloqueado).</p>
-          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-" data-callback="onTurnstileVerified" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileError" data-theme="dark"></div>
-          <p id="turnstile-status" class="small muted" role="status" aria-live="polite">A verificação não envia nem grava dados pessoais.</p>
+        <label for="dob">Data de nascimento</label>
+        <input id="dob" name="data_nascimento" type="date" required autocomplete="bday">
+        <label for="phone">Telefone com DDD</label>
+        <input id="phone" name="telefone" type="tel" required maxlength="32" autocomplete="tel" placeholder="(11) 99999-9999">
+        <label for="email">E-mail</label>
+        <input id="email" name="email" type="email" required maxlength="254" autocomplete="email" placeholder="voce@exemplo.com">
+        <label for="first-time">É sua primeira vez no templo?</label>
+        <select id="first-time" name="primeira_vez" required><option value="">Selecione</option><option value="Sim">Sim</option><option value="Não">Não</option></select>
+        <label for="preferential">Necessita de atendimento preferencial?</label>
+        <select id="preferential" name="preferencial" required><option value="">Selecione</option><option value="false">Não</option><option value="true">Sim</option></select>
+        <div id="preferential-details" hidden>
+          <label for="preferential-type">Tipo de atendimento preferencial</label>
+          <select id="preferential-type" name="tipo_preferencial"><option value="">Selecione</option><option>Gestante</option><option>Idoso</option><option>Criança de Colo</option><option>PCD</option><option>Outro</option></select>
+          <label for="preferential-description">Se selecionou “Outro”, descreva a necessidade</label>
+          <textarea id="preferential-description" name="descricao_preferencial" maxlength="300" rows="3"></textarea>
         </div>
-        <button type="button" disabled>Reservas ainda não liberadas</button>
+        <label for="returning">Retorna com um médium? (opcional)</label>
+        <select id="returning" name="retorno"><option value="">Não informado</option><option value="Sim">Sim</option><option value="Não">Não</option></select>
+        <div id="medium-name-wrap" hidden><label for="medium-name">Nome do médium</label><input id="medium-name" name="medium_nome" maxlength="180"></div>
+        <div class="turnstile-wrap">
+          <p class="small muted">Conclua a verificação de segurança antes de enviar.</p>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-" data-callback="onTurnstileVerified" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileError" data-theme="dark"></div>
+          <p id="turnstile-status" class="small muted" role="status" aria-live="polite">A verificação é obrigatória para enviar a solicitação.</p>
+        </div>
+        <button id="reservation-submit" type="submit">Solicitar reserva</button>
       </form>
-      <p id="config-message" class="small muted">Agenda pública conectada. Nenhuma reserva será gravada nesta etapa.</p>
+      <p id="config-message" class="small muted">Sua solicitação será enviada com segurança após validação dos dados e da verificação antirobô. A reserva só será confirmada se houver disponibilidade.</p>
     </section>
 
     <section class="privacy-note">
-      <p><strong>Privacidade:</strong> nenhum dado de consulente é solicitado nesta versão inicial. A planilha de migração não foi importada.</p>
+      <p><strong>Privacidade:</strong> os dados informados serão usados exclusivamente para administrar esta solicitação de reserva. Não informe dados de terceiros sem autorização.</p>
     </section>
   </main>
 
