@@ -88,7 +88,7 @@ begin
   select * into v_r from jsonb_populate_record(null::public.reservas,v_row);
   if not exists(select 1 from public.giras where id=v_r.gira_id) then raise exception using errcode='23503',message='Reserva do backup aponta para gira ausente.'; end if;
   select * into v_g from public.giras where id=v_r.gira_id for update;
-  if v_r.status='ativa' and not exists(select 1 from public.reservas old where old.id=v_r.id and old.status='ativa') then
+  if v_r.status='ativa' and not exists(select 1 from public.reservas old where old.id=v_r.id and old.gira_id=v_r.gira_id and old.status='ativa') then
    select count(*) into v_occupied from public.reservas old where old.gira_id=v_r.gira_id and old.status='ativa';
    if v_g.limite_vagas is null or v_occupied>=v_g.limite_vagas then
     raise exception using errcode='P0001',message='Restauração excederia a capacidade de uma gira. Nenhuma alteração parcial foi confirmada.';
