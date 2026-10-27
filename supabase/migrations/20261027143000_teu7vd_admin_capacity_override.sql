@@ -80,7 +80,7 @@ begin
   end if;
 
   insert into public.contadores_senha(tipo_gira,proxima_senha)
-    values (trim(v_gira.tipo_gira),2)
+    values (lower(trim(v_gira.tipo_gira)),2)
     on conflict (tipo_gira) do update
       set proxima_senha=public.contadores_senha.proxima_senha+1, updated_at=now()
     returning proxima_senha-1 into v_senha;
@@ -89,7 +89,7 @@ begin
     gira_id,tipo_gira,senha_original,senha_numero,nome_completo,data_nascimento,telefone,email,
     primeira_vez,retorno,medium_nome,preferencial,tipo_preferencial,descricao_preferencial,status,origem
   ) values (
-    v_gira.id,trim(v_gira.tipo_gira),v_senha::text,v_senha,trim(p_nome_completo),p_data_nascimento,
+    v_gira.id,lower(trim(v_gira.tipo_gira)),v_senha::text,v_senha,trim(p_nome_completo),p_data_nascimento,
     trim(p_telefone),v_email,trim(p_primeira_vez),nullif(trim(coalesce(p_retorno,'')),''),
     nullif(trim(coalesce(p_medium_nome,'')),''),coalesce(p_preferencial,false),v_tipo,
     nullif(trim(coalesce(p_descricao_preferencial,'')),''),'ativa','painel_admin_excedente'
@@ -97,7 +97,7 @@ begin
 
   insert into public.auditoria(user_id,acao,entidade,entidade_id,detalhes)
   values (p_actor_id,'reserva_criada_excedente','reserva',v_reserva_id::text,
-    jsonb_build_object('gira_id',v_gira.id,'tipo_gira',trim(v_gira.tipo_gira),
+    jsonb_build_object('gira_id',v_gira.id,'tipo_gira',lower(trim(v_gira.tipo_gira)),
       'ocupadas_antes',v_ocupadas,'limite_vagas',v_gira.limite_vagas,
       'motivo',trim(p_motivo_excedente),'origem','painel_admin_excedente'));
   return jsonb_build_object('success',true,'message','Reserva administrativa registrada.','reservation_id',v_reserva_id);
