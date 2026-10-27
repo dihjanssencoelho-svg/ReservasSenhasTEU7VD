@@ -122,3 +122,19 @@ button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-all
   .admin-filters, .admin-date-row, .admin-filter-actions { grid-template-columns: minmax(0, 1fr); }
   .admin-date-row, .admin-filter-actions { grid-column: 1; }
 }
+
+
+/* Impressão da lista administrativa: remove navegação, formulários e ações. */
+@media print {
+  body { background: #fff !important; color: #111 !important; }
+  .site-header, .intro, .form-panel, .privacy-note, .site-footer,
+  .team-access-wrap > button, #team-login-form, .admin-filters,
+  .admin-filter-actions, .admin-pagination, #team-login-status,
+  #portal-settings-status, #override-status, button { display: none !important; }
+  .container, .team-access-wrap, #team-access, #team-session { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; border: 0 !important; box-shadow: none !important; background: #fff !important; color: #111 !important; }
+  .admin-table-scroll { overflow: visible !important; }
+  .admin-table { width: 100% !important; border-collapse: collapse !important; font-size: 9pt !important; }
+  .admin-table th, .admin-table td { color: #111 !important; border: 1px solid #777 !important; padding: 4px !important; }
+  .admin-table tr { break-inside: avoid; }
+}
+.low-vacancy { color: #ffcf78; font-weight: 700; }
