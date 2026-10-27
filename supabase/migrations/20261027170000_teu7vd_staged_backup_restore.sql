@@ -113,19 +113,7 @@ begin
     mensagem_confirmacao=coalesce(v_settings->>'mensagem_confirmacao',mensagem_confirmacao),
     cor_primaria=case when coalesce(v_settings->>'cor_primaria','') ~ '^#[0-9A-Fa-f]{6}$' then v_settings->>'cor_primaria' else cor_primaria end,
     cor_destaque=case when coalesce(v_settings->>'cor_destaque','') ~ '^#[0-9A-Fa-f]{6}$' then v_settings->>'cor_destaque' else cor_destaque end,
-    limite_alerta_vagas=case when coalesce(v_settings->>'limite_alerta_vagas','') ~ '^[0-9]+ and (v_settings->>'limite_alerta_vagas')::integer between 0 and 10000 then (v_settings->>'limite_alerta_vagas')::integer else limite_alerta_vagas end,
-    atualizado_por=p_actor_id,updated_at=now() where id=true;
- end if;
- update public.backup_restore_jobs set status='aplicado',aplicado_por=p_actor_id,motivo_aplicacao=trim(p_motivo),applied_at=now() where id=p_job_id;
- insert into public.auditoria(user_id,acao,entidade,entidade_id,detalhes)
- values(p_actor_id,'restauracao_backup_aplicada','backup_restore_job',p_job_id::text,
-  jsonb_build_object('giras',v_count_g,'reservas',v_count_r,'contadores_senha',v_count_c,'motivo',trim(p_motivo),'modo','merge_sem_exclusao'));
- return jsonb_build_object('success',true,'giras',v_count_g,'reservas',v_count_r,'contadores_senha',v_count_c);
-end;
-$$;
-revoke all on function public.teu7vd_aplicar_restauracao_backup(uuid,uuid,text) from public,anon,authenticated;
-grant execute on function public.teu7vd_aplicar_restauracao_backup(uuid,uuid,text) to service_role;
- and (v_settings->>'limite_alerta_vagas')::integer between 0 and 10000 then (v_settings->>'limite_alerta_vagas')::integer else limite_alerta_vagas end,
+    limite_alerta_vagas=case when coalesce(v_settings->>'limite_alerta_vagas','') ~ '^[0-9]+$' and (v_settings->>'limite_alerta_vagas')::integer between 0 and 10000 then (v_settings->>'limite_alerta_vagas')::integer else limite_alerta_vagas end,
     atualizado_por=p_actor_id,updated_at=now() where id=true;
  end if;
  update public.backup_restore_jobs set status='aplicado',aplicado_por=p_actor_id,motivo_aplicacao=trim(p_motivo),applied_at=now() where id=p_job_id;
