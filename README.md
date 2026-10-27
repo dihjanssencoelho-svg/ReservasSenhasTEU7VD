@@ -6,9 +6,9 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 - Branch de trabalho: `preparacao-homologacao`.
 - Banco Supabase ativo; migrações de aplicação existentes.
 - Nenhum consulente ou registro histórico foi importado.
-- Frontend consulta apenas a agenda pública publicada; formulário segue desativado.
-- Três Edge Functions estão implantadas no projeto Supabase e ativas (versão 2): `criar-reserva`, `listar-reservas` e `admin-reservas`.
-- Portal não foi publicado/liberado para reservas.
+- Formulário e painel administrativo estão presentes no código da branch; envio público depende de Turnstile válido e de backend/migrações homologados. Não considerar liberado para reservas reais até o aceite final.
+- No Supabase remoto, as Edge Functions anteriormente implantadas são `criar-reserva`, `listar-reservas` e `admin-reservas`. Novos endpoints administrativos criados nesta branch ainda não devem ser considerados implantados.
+- A branch de homologação recebeu novas telas e funções; confirmar deployment e compatibilidade das migrações antes de permitir reservas reais.
 - Widget Cloudflare Turnstile criado em modo Managed para o hostname padrão pretendido do GitHub Pages: `dihjanssencoelho-svg.github.io`.
 - Sitekey pública do widget: `0x4AAAAAAFnEzhpEH4Texj_-`.
 - O hostname foi definido como destino pretendido; isso **não** confirma que o GitHub Pages esteja habilitado ou publicado.
@@ -56,3 +56,11 @@ Este repositório é exclusivo do portal de reservas. **Não alterar nem substit
 8. Só então considerar publicação e habilitação do formulário.
 
 Não habilitar GitHub Pages nem liberar reservas até que os bloqueios sejam resolvidos. O site institucional separado permanece intocado.
+
+
+## Implementações na branch de homologação
+As funcionalidades de excedente administrativo, configuração do portal, métricas públicas de ocupação, exportação CSV compatível com Excel, impressão, sinalização de aniversário, backup JSON, restauração por merge e importação CSV em duas etapas estão no código da branch `preparacao-homologacao`. Elas dependem das migrações correspondentes e da implantação controlada das novas Edge Functions.
+
+A importação exige `gira_id` de uma gira existente e preserva `senha_original`; linhas ativas não podem ultrapassar a capacidade, e colisões de senha/duplicidade fazem a transação falhar. A restauração de backup é um merge por identificador: atualiza registros correspondentes e adiciona os ausentes, sem apagar registros que não constam no arquivo. O backup contém dados pessoais e deve ser guardado em local restrito.
+
+A exportação tabular disponível é CSV compatível com Excel, limitada à página atual da listagem filtrada; não é um arquivo XLSX nativo nem uma exportação de todas as páginas.
