@@ -80,7 +80,7 @@ begin
   select * into v_g from jsonb_populate_record(null::public.giras,v_row);
   insert into public.giras(id,titulo,data_gira,chave,limite_vagas,ativa,status,tipo_gira,created_at,updated_at)
   values(v_g.id,v_g.titulo,v_g.data_gira,v_g.chave,v_g.limite_vagas,v_g.ativa,v_g.status,v_g.tipo_gira,coalesce(v_g.created_at,now()),coalesce(v_g.updated_at,now()))
-  on conflict(id) do update set titulo=excluded.titulo,data_gira=excluded.data_gira,chave=excluded.chave,limite_vagas=excluded.limite_vagas,ativa=excluded.ativa,status=excluded.status,tipo_gira=excluded.tipo_gira,updated_at=now();
+  on conflict(id) do update set titulo=excluded.titulo,data_gira=excluded.data_gira,chave=excluded.chave,ativa=excluded.ativa,status=excluded.status,tipo_gira=excluded.tipo_gira,updated_at=now(); -- preserva o limite operacional atual da gira existente.
   v_count_g:=v_count_g+1;
  end loop;
 
