@@ -79,7 +79,11 @@ jobs:
       - name: Testar concorrência de numeração e capacidade
         env:
           LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
-        run: bash supabase/tests/reservation-concurrency-smoke.sh
+        run: |
+          for attempt in 1 2 3 4 5; do
+            echo "Execução de concorrência $attempt/5"
+            bash supabase/tests/reservation-concurrency-smoke.sh
+          done
 
   runtime-smoke:
     name: Smoke HTTP real sem mutações
