@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 # Evita duas inicializações Supabase simultâneas para o mesmo commit/branch,
 # reduzindo pulls duplicados e limites transitórios do registry de imagens.
@@ -94,6 +95,12 @@ jobs:
         uses: supabase/setup-cli@v1
         with:
           version: 2.75.0
+
+      - name: Autenticar pull de imagens do GHCR
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
       - name: Iniciar Supabase local e aplicar migrações
         run: |
