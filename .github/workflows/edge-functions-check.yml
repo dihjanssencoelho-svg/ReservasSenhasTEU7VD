@@ -175,17 +175,17 @@ jobs:
           $security$;
           SQL
 
-      - name: Confirmar que RPCs administrativas rejeitam sessão sem perfil admin
+      - name: Verificar bloqueio das RPCs administrativas para authenticated
         env:
           LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
         run: |
           psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
           do $privileges$
           begin
-            if not has_function_privilege('authenticated','public.teu7vd_cancelar_reserva(uuid,text)','EXECUTE')
-              or not has_function_privilege('authenticated','public.teu7vd_excluir_reserva(uuid,text)','EXECUTE')
-              or not has_function_privilege('authenticated','public.teu7vd_reabrir_reserva(uuid,text)','EXECUTE') then
-              raise exception 'Teste inválido: authenticated precisa ter EXECUTE nas RPCs para validar a proteção interna de admin';
+            if has_function_privilege('authenticated','public.teu7vd_cancelar_reserva(uuid,text)','EXECUTE')
+              or has_function_privilege('authenticated','public.teu7vd_excluir_reserva(uuid,text)','EXECUTE')
+              or has_function_privilege('authenticated','public.teu7vd_reabrir_reserva(uuid,text)','EXECUTE') then
+              raise exception 'Falha: uma RPC administrativa foi exposta a authenticated';
             end if;
           end;
           $privileges$;
@@ -211,7 +211,7 @@ jobs:
             exception when sqlstate '42501' then
               null;
             end;
-            raise notice 'PASSOU: RPCs administrativas recusaram sessão autenticada sem perfil admin';
+            raise notice 'PASSOU: authenticated não pode executar as RPCs administrativas';
           end;
           $guard$;
           rollback;
