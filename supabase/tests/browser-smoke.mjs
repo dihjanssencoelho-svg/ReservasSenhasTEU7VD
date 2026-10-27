@@ -32,7 +32,7 @@ try {
   const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
   assert.ok(response, "O portal local não retornou resposta HTTP.");
   assert.equal(response.status(), 200, "O portal local não respondeu HTTP 200.");
-  await page.getByRole("heading", { name: "Reserve sua senha" }).waitFor();
+  await page.getByRole("heading", { name: "Reserva de Vagas" }).waitFor();
 
   const name = page.locator("#full-name");
   const event = page.locator("#event");
