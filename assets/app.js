@@ -319,6 +319,63 @@ function showTeamSession(role) {
     <label for="portal-low-vacancy">Alertar quando restarem até</label><input id="portal-low-vacancy" name="limite_alerta_vagas" type="number" min="0" max="10000" value="5" required>
     <button type="submit">Salvar configurações</button>
     <p id="portal-settings-status" class="small muted" role="status" aria-live="polite"></p>`;
+  const restoreForm = document.createElement("form");
+  restoreForm.className = "admin-filters";
+  restoreForm.hidden = role !== "admin";
+  restoreForm.innerHTML = `
+    <h4>Importar ou restaurar backup JSON</h4>
+    <p class="small muted">Validação primeiro; a prévia não altera dados. A restauração faz merge por identificador, preserva registros ausentes e exige motivo e confirmação explícita.</p>
+    <label for="restore-file">Arquivo de backup TEU7VD</label><input id="restore-file" type="file" accept=".json,application/json" required>
+    <button type="submit">Validar backup (prévia)</button>
+    <p id="restore-preview-status" class="small muted" role="status" aria-live="polite"></p>
+    <label for="restore-reason">Motivo da restauração (mínimo 10 caracteres)</label><textarea id="restore-reason" maxlength="500" minlength="10" required></textarea>
+    <label for="restore-confirm">Digite RESTAURAR para confirmar</label><input id="restore-confirm" maxlength="20" autocomplete="off" required>
+    <button id="restore-apply" type="button" disabled>Aplicar restauração</button>`;
+  let restoreJobId = null;
+  restoreForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (role !== "admin" || !restoreForm.reportValidity()) return;
+    const token = getToken(), file = restoreForm.querySelector("#restore-file").files?.[0];
+    const status = restoreForm.querySelector("#restore-preview-status");
+    if (!token || !file) { status.textContent = "Sessão administrativa e arquivo são obrigatórios."; return; }
+    if (file.size > 12000000) { status.textContent = "O backup excede 12 MB."; return; }
+    try {
+      const backup = JSON.parse(await file.text());
+      status.textContent = "Validando estrutura e registrando prévia sem alterar reservas…";
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-restaurar-backup", {
+        method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "preview_restore", backup }), cache: "no-store"
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) throw new Error(result?.message || "Backup rejeitado.");
+      restoreJobId = result.job_id;
+      restoreForm.querySelector("#restore-apply").disabled = false;
+      status.textContent = result.message + " Lote: " + restoreJobId + " · " + JSON.stringify(result.resumo);
+    } catch (error) { restoreJobId = null; restoreForm.querySelector("#restore-apply").disabled = true; status.textContent = error instanceof Error ? error.message : "Backup rejeitado."; }
+  });
+  restoreForm.querySelector("#restore-apply").addEventListener("click", async () => {
+    const token = getToken(), status = restoreForm.querySelector("#restore-preview-status");
+    const reason = restoreForm.querySelector("#restore-reason").value.trim();
+    const confirmation = restoreForm.querySelector("#restore-confirm").value.trim();
+    if (role !== "admin" || !token || !restoreJobId || reason.length < 10 || reason.length > 500 || confirmation !== "RESTAURAR") {
+      status.textContent = "Informe motivo válido e digite exatamente RESTAURAR.";
+      return;
+    }
+    if (!window.confirm("A restauração fará merge dos dados do backup com o banco e poderá atualizar registros existentes. Deseja continuar?")) return;
+    const button = restoreForm.querySelector("#restore-apply"); button.disabled = true;
+    try {
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-restaurar-backup", {
+        method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "apply_restore", job_id: restoreJobId, reason }), cache: "no-store"
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) throw new Error(result?.message || "Restauração não aplicada.");
+      status.textContent = result.message + " " + JSON.stringify(result.resumo);
+      restoreJobId = null;
+      restoreForm.reset();
+    } catch (error) { status.textContent = error instanceof Error ? error.message : "Restauração não aplicada."; }
+    finally { button.disabled = !restoreJobId; }
+  });
   const filters = document.createElement("form");
   filters.className = "admin-filters";
   filters.innerHTML = `
@@ -555,7 +612,7 @@ function showTeamSession(role) {
     clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
     if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, settingsForm, filters, status, exportBar, results, pagination, logout);
+  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, settingsForm, restoreForm, filters, status, exportBar, results, pagination, logout);
   else teamSession.append(heading, detail, filters, status, exportBar, results, pagination, logout);
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
