@@ -324,7 +324,7 @@ function showTeamSession(role) {
       ? [["Senha", x => x.senha_original || x.senha_numero],["Nome", x => x.nome_completo],["Gira", x => x.gira?.titulo],["Data da gira", x => x.gira?.data_gira],["Telefone", x => x.telefone],["E-mail", x => x.email],["Nascimento", x => x.data_nascimento],["Aniversário na semana", x => birthdayWithinGiraWeek(x.data_nascimento, x.gira?.data_gira) ? "Sim" : "Não"],["Status", x => x.status],["Preferencial", x => x.preferencial ? (x.tipo_preferencial || "Sim") : "Não"]]
       : [["Senha", x => x.senha_original || x.senha_numero],["Nome", x => x.nome_completo],["Gira", x => x.gira?.titulo],["Data da gira", x => x.gira?.data_gira],["Status", x => x.status],["Preferencial", x => x.preferencial ? (x.tipo_preferencial || "Sim") : "Não"]];
     const quote = value => '"' + String(value ?? "").replace(/"/g, '""') + '"';
-    const csv = "\\uFEFF" + [columns.map(c => quote(c[0])).join(";"), ...exportRows.map(row => columns.map(col => quote(col[1](row))).join(";"))].join("\\r\\n");
+    const csv = "\uFEFF" + [columns.map(c => quote(c[0])).join(";"), ...exportRows.map(row => columns.map(col => quote(col[1](row))).join(";"))].join("\r\n");
     const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
     const a = document.createElement("a"); a.href = url; a.download = "reservas-pagina-" + page + ".csv"; a.click(); URL.revokeObjectURL(url);
   });
