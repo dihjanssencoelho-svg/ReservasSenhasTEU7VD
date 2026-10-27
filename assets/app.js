@@ -43,6 +43,22 @@ function formatDate(value) {
     .toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 }
 
+function birthdayWithinGiraWeek(birthDate, giraDate) {
+  const birth = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(birthDate ?? ""));
+  const gira = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(giraDate ?? ""));
+  if (!birth || !gira) return false;
+  const year = Number(gira[1]);
+  const month = Number(birth[2]) - 1;
+  const day = Number(birth[3]);
+  const candidates = [year - 1, year, year + 1].map(y => {
+    const d = new Date(Date.UTC(y, month, day));
+    if (d.getUTCMonth() !== month) d.setUTCDate(0);
+    return d;
+  });
+  const target = Date.UTC(Number(gira[1]), Number(gira[2]) - 1, Number(gira[3]));
+  return candidates.some(d => Math.abs(Math.round((d.getTime() - target) / 86400000)) <= 6);
+}
+
 async function loadPublishedGiras() {
   if (!SUPABASE_URL || !SUPABASE_PUBLIC_KEY || !girasList) return;
   girasList.className = "empty-state";
@@ -348,7 +364,7 @@ function showTeamSession(role) {
         table.className = "admin-table";
         const headers = role === "operador"
           ? ["Senha", "Nome", "Gira", "Status", "Preferencial", "Ações"]
-          : ["Senha", "Nome", "Gira", "Contato", "Nascimento", "Status", "Preferencial", "Ações"];
+          : ["Senha", "Nome", "Gira", "Contato", "Nascimento", "Aniversário", "Status", "Preferencial", "Ações"];
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
         headers.forEach(label => { const th = document.createElement("th"); th.textContent = label; headerRow.append(th); });
@@ -358,7 +374,7 @@ function showTeamSession(role) {
           const tr = document.createElement("tr");
           const values = role === "operador"
             ? [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"]
-            : [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", [item.telefone, item.email].filter(Boolean).join(" · ") || "—", item.data_nascimento ? formatDate(item.data_nascimento) : "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"];
+            : [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", [item.telefone, item.email].filter(Boolean).join(" · ") || "—", item.data_nascimento ? formatDate(item.data_nascimento) : "—", birthdayWithinGiraWeek(item.data_nascimento, item.gira?.data_gira) ? "🎂 Nesta semana da gira" : "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"];
           values.forEach(value => { const td = document.createElement("td"); td.textContent = String(value ?? "—"); tr.append(td); });
           const actions = document.createElement("td");
           const locked = document.createElement("button");
