@@ -64,6 +64,19 @@ async function loadPublishedGiras() {
     });
     if (!result.ok) throw new Error("agenda_unavailable");
     const giras = await result.json();
+    let vacancyByGira = new Map();
+    try {
+      const metrics = await fetch(SUPABASE_URL + "/rest/v1/rpc/teu7vd_resumo_vagas_publico", {
+        method: "POST",
+        headers: { apikey: SUPABASE_PUBLIC_KEY, "Content-Type": "application/json", Accept: "application/json" },
+        body: "{}",
+        cache: "no-store"
+      });
+      if (metrics.ok) {
+        const rows = await metrics.json();
+        if (Array.isArray(rows)) vacancyByGira = new Map(rows.map(row => [row.gira_id, row]));
+      }
+    } catch { /* agenda continua disponível sem métricas */ }
     const eventSelect = document.getElementById("event");
     if (eventSelect) {
       eventSelect.replaceChildren(new Option("Selecione uma gira", ""));
@@ -84,10 +97,17 @@ async function loadPublishedGiras() {
     girasList.className = "giras-grid";
     girasList.innerHTML = giras.map((gira) => {
       const vagas = Number.isInteger(gira.limite_vagas) ? gira.limite_vagas : null;
+      const metric = vacancyByGira.get(gira.id);
+      const vacancyText = metric
+        ? (Number(metric.vagas_restantes) <= 0 ? "Vagas esgotadas" :
+          Number(metric.vagas_restantes) <= 5 ? "Poucas vagas: " + metric.vagas_restantes + " restante(s)" :
+          metric.vagas_restantes + " vaga(s) restante(s)") + " · " + metric.ocupacao_percentual + "% ocupadas"
+        : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
+      const vacancyClass = metric && (Number(metric.vagas_restantes) <= 5) ? "gira-vacancies low-vacancy" : "gira-vacancies";
       return '<article class="gira-card"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
-        '<p class="gira-vacancies">' + (vagas === null ? 'Vagas a confirmar' : escapeHtml(vagas) + ' vagas previstas') + '</p>' +
+        '<p class="' + vacancyClass + '">' + escapeHtml(vacancyText) + '</p>' +
         '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></article>';
     }).join("");
   } catch {
