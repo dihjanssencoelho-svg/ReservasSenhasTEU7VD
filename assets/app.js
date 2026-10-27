@@ -291,6 +291,18 @@ function showTeamSession(role) {
   overridePreferentialType?.addEventListener("change", () => {
     overridePreferentialDescription.required = overridePreferential.value === "true" && overridePreferentialType.value === "Outro";
   });
+  const settingsForm = document.createElement("form");
+  settingsForm.className = "admin-filters";
+  settingsForm.hidden = role !== "admin";
+  settingsForm.innerHTML = `
+    <h4>Configurações do portal</h4>
+    <label for="portal-public-message">Mensagem pública</label><textarea id="portal-public-message" name="mensagem_publica" maxlength="500" required></textarea>
+    <label for="portal-confirmation-message">Mensagem de confirmação</label><textarea id="portal-confirmation-message" name="mensagem_confirmacao" maxlength="500" required></textarea>
+    <label for="portal-primary-color">Cor principal</label><input id="portal-primary-color" name="cor_primaria" type="color" value="#17131e" required>
+    <label for="portal-accent-color">Cor de destaque</label><input id="portal-accent-color" name="cor_destaque" type="color" value="#c9a86a" required>
+    <label for="portal-low-vacancy">Alertar quando restarem até</label><input id="portal-low-vacancy" name="limite_alerta_vagas" type="number" min="0" max="10000" value="5" required>
+    <button type="submit">Salvar configurações</button>
+    <p id="portal-settings-status" class="small muted" role="status" aria-live="polite"></p>`;
   const filters = document.createElement("form");
   filters.className = "admin-filters";
   filters.innerHTML = `
@@ -420,6 +432,47 @@ function showTeamSession(role) {
       status.textContent = "Não foi possível carregar a listagem protegida. Nenhuma ação foi executada.";
     }
   };
+  const loadPortalSettings = async () => {
+    const token = getToken();
+    if (!token || role !== "admin") return;
+    try {
+      const url = new URL("/rest/v1/configuracoes_portal", SUPABASE_URL);
+      url.searchParams.set("select", "mensagem_publica,mensagem_confirmacao,cor_primaria,cor_destaque,limite_alerta_vagas");
+      url.searchParams.set("id", "eq.true");
+      url.searchParams.set("limit", "1");
+      const response = await fetch(url, { headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, Accept: "application/json" }, cache: "no-store" });
+      if (!response.ok) throw new Error();
+      const rows = await response.json();
+      if (rows[0]) for (const key of ["mensagem_publica","mensagem_confirmacao","cor_primaria","cor_destaque","limite_alerta_vagas"]) {
+        const field = settingsForm.elements.namedItem(key);
+        if (field && rows[0][key] != null) field.value = String(rows[0][key]);
+      }
+    } catch {
+      settingsForm.querySelector("#portal-settings-status").textContent = "Não foi possível carregar as configurações atuais.";
+    }
+  };
+  settingsForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (role !== "admin" || !settingsForm.reportValidity()) return;
+    const token = getToken();
+    const status = settingsForm.querySelector("#portal-settings-status");
+    if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
+    const data = new FormData(settingsForm);
+    const payload = Object.fromEntries(data.entries());
+    payload.limite_alerta_vagas = Number(payload.limite_alerta_vagas);
+    const submit = settingsForm.querySelector('button[type="submit"]');
+    submit.disabled = true; status.textContent = "Validando permissões e salvando…";
+    try {
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-configuracoes", {
+        method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify(payload), cache: "no-store"
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível salvar.");
+      status.textContent = result.message;
+    } catch (error) { status.textContent = error instanceof Error ? error.message : "Não foi possível salvar."; }
+    finally { submit.disabled = false; }
+  });
   overCapacityForm.addEventListener("submit", async event => {
     event.preventDefault();
     if (role !== "admin" || !overCapacityForm.reportValidity()) return;
@@ -460,10 +513,11 @@ function showTeamSession(role) {
     clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
     if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, filters, status, exportBar, results, pagination, logout);
+  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, settingsForm, filters, status, exportBar, results, pagination, logout);
   else teamSession.append(heading, detail, filters, status, exportBar, results, pagination, logout);
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
+  if (role === "admin") loadPortalSettings();
   fetchReservations();
 }
 
