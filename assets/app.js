@@ -343,8 +343,33 @@ function showTeamSession(role) {
   const printList = document.createElement("button");
   printList.type = "button";
   printList.className = "secondary-button";
-  printList.textContent = "Imprimir lista do dia";
-  exportBar.append(exportCsv, printList);
+  printList.textContent = "Imprimir lista";
+  const backupButton = document.createElement("button");
+  backupButton.type = "button";
+  backupButton.className = "secondary-button";
+  backupButton.textContent = "Gerar backup JSON";
+  backupButton.hidden = role !== "admin";
+  backupButton.addEventListener("click", async () => {
+    const token = getToken();
+    if (role !== "admin" || !token) { setTeamStatus("Sessão administrativa necessária."); return; }
+    backupButton.disabled = true;
+    status.textContent = "Gerando backup integral e registrando auditoria…";
+    try {
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-backup", {
+        method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "export_backup" }), cache: "no-store"
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success || !result.backup) throw new Error(result?.message || "Backup não concluído.");
+      const blob = new Blob([JSON.stringify(result.backup, null, 2)], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = "teu7vd-backup-" + new Date().toISOString().slice(0,10) + ".json"; a.click();
+      URL.revokeObjectURL(url);
+      status.textContent = "Backup completo gerado e auditado. Guarde o arquivo em local restrito: contém dados pessoais.";
+    } catch (error) { status.textContent = error instanceof Error ? error.message : "Backup não concluído."; }
+    finally { backupButton.disabled = false; }
+  });
+  exportBar.append(exportCsv, printList, backupButton);
   let exportRows = [];
   exportCsv.addEventListener("click", () => {
     if (!exportRows.length) { status.textContent = "Não há registros nesta página para exportar."; return; }
