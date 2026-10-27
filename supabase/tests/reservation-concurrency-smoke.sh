@@ -29,6 +29,7 @@ SQL
   rm -rf "$TMP"
 }
 trap cleanup EXIT
+trap 'rc=$?; echo "ERRO: teste de concorrência terminou na linha $LINENO (código $rc)." >&2; for f in "$TMP"/err-*; do [ -f "$f" ] && { echo "--- $f ---" >&2; cat "$f" >&2; }; done' ERR
 
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -q \
   -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" -v gira_c="$GIRA_C" \
@@ -76,6 +77,7 @@ wait "$pid1"; wait "$pid2"
 
 SUCCESS="$(grep -l '^success$' "$TMP"/status-cap-* 2>/dev/null | wc -l | tr -d ' ')"
 REJECTED="$(grep -l '^rejected$' "$TMP"/status-cap-* 2>/dev/null | wc -l | tr -d ' ')"
+echo "Diagnóstico capacidade: sucessos=$SUCCESS rejeições=$REJECTED" >&2
 if [ "$SUCCESS" -ne 1 ] || [ "$REJECTED" -ne 1 ]; then
   echo "FALHA: capacidade esperava 1 sucesso/1 rejeição; obtido $SUCCESS/$REJECTED." >&2
   cat "$TMP"/err-cap-* >&2 || true
@@ -93,6 +95,7 @@ wait "$pid3"; wait "$pid4"
 
 SUCCESS="$(grep -l '^success$' "$TMP"/status-num-* 2>/dev/null | wc -l | tr -d ' ')"
 REJECTED="$(grep -l '^rejected$' "$TMP"/status-num-* 2>/dev/null | wc -l | tr -d ' ')"
+echo "Diagnóstico numeração: sucessos=$SUCCESS rejeições=$REJECTED" >&2
 if [ "$SUCCESS" -ne 2 ] || [ "$REJECTED" -ne 0 ]; then
   echo "FALHA: numeração concorrente esperava 2 sucessos; obtido $SUCCESS sucessos/$REJECTED rejeições." >&2
   cat "$TMP"/err-num-* >&2 || true
