@@ -85,13 +85,13 @@ Deno.serve(async (req: Request) => {
   const select = "id,gira_id,senha_original,senha_numero,nome_completo,data_nascimento,telefone,email,primeira_vez,retorno,medium_nome,preferencial,tipo_preferencial,descricao_preferencial,status,tipo_gira,origem,legado_importado,linha_origem,created_at,updated_at,cancelada_em,reaberta_em,excluida_em,exclusao_motivo";
 
   try {
-    let giraQuery = trusted.from("giras").select("id,titulo,data_gira,tipo_gira");
+    let giraQuery = trusted.from("giras").select("id,titulo,data_gira,tipo_gira,ativa,status,limite_vagas");
     if (body.gira_id) giraQuery = giraQuery.eq("id", String(body.gira_id));
     if (body.tipo_gira) giraQuery = giraQuery.eq("tipo_gira", String(body.tipo_gira));
     if (body.data_inicio) giraQuery = giraQuery.gte("data_gira", String(body.data_inicio));
     if (body.data_fim) giraQuery = giraQuery.lte("data_gira", String(body.data_fim));
     // Paginação explícita evita omitir silenciosamente giras após o limite de 500.
-    const giras: Array<{id: string; titulo: string; data_gira: string; tipo_gira: string | null}> = [];
+    const giras: Array<{id: string; titulo: string; data_gira: string; tipo_gira: string | null; ativa: boolean; status: string; limite_vagas: number | null}> = [];
     const batchSize = 500;
     const maxGiras = 10000;
     for (let offset = 0; offset < maxGiras; offset += batchSize) {
