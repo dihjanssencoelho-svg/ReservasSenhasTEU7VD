@@ -11,15 +11,14 @@ const girasList = document.getElementById("giras-list");
 const reservationForm = document.getElementById("reservation-form");
 const turnstileStatus = document.getElementById("turnstile-status");
 
-// Homologação apenas: token mantido em memória, nunca persistido nem enviado.
-// A reserva continua bloqueada até aprovação explícita dos testes de segurança.
+// Token do Turnstile mantido somente em memória e enviado apenas ao endpoint de validação.
 let turnstileTokenForHomologation = null;
 window.onTurnstileVerified = function (token) {
   turnstileTokenForHomologation = typeof token === "string" ? token : null;
   if (turnstileStatus) {
     turnstileStatus.textContent = turnstileTokenForHomologation
-      ? "Verificação concluída neste navegador. O envio de reservas continua desativado."
-      : "Não foi possível concluir a verificação. O envio continua desativado.";
+      ? "Verificação concluída. Você já pode enviar a solicitação."
+      : "Não foi possível concluir a verificação. O envio permanece bloqueado.";
   }
 };
 window.onTurnstileExpired = function () {
@@ -65,6 +64,16 @@ async function loadPublishedGiras() {
     });
     if (!result.ok) throw new Error("agenda_unavailable");
     const giras = await result.json();
+    const eventSelect = document.getElementById("event");
+    if (eventSelect) {
+      eventSelect.replaceChildren(new Option("Selecione uma gira", ""));
+      for (const gira of (Array.isArray(giras) ? giras : [])) {
+        const option = new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id);
+        option.disabled = !Number.isInteger(gira.limite_vagas) || gira.limite_vagas < 1;
+        eventSelect.add(option);
+      }
+      if (eventSelect.options.length === 1) eventSelect.options[0].textContent = "Nenhuma gira disponível";
+    }
 
     if (!Array.isArray(giras) || giras.length === 0) {
       girasList.className = "empty-state";
@@ -79,7 +88,7 @@ async function loadPublishedGiras() {
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
         '<p class="gira-vacancies">' + (vagas === null ? 'Vagas a confirmar' : escapeHtml(vagas) + ' vagas previstas') + '</p>' +
-        '<p class="small muted">Solicitação de reserva ainda não liberada.</p></article>';
+        '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></article>';
     }).join("");
   } catch {
     girasList.className = "empty-state";
@@ -89,11 +98,94 @@ async function loadPublishedGiras() {
 
 if (configMessage) {
   configMessage.textContent =
-    "Agenda conectada para leitura pública. O formulário continua desativado até a homologação do backend seguro.";
+    "Agenda conectada. As reservas dependem de validação de segurança e disponibilidade.";
 }
-reservationForm?.addEventListener("submit", (event) => {
+const reservationSubmit = document.getElementById("reservation-submit");
+const preferentialSelect = document.getElementById("preferential");
+const preferentialDetails = document.getElementById("preferential-details");
+const preferentialType = document.getElementById("preferential-type");
+const preferentialDescription = document.getElementById("preferential-description");
+const returningSelect = document.getElementById("returning");
+const mediumNameWrap = document.getElementById("medium-name-wrap");
+const mediumNameInput = document.getElementById("medium-name");
+
+preferentialSelect?.addEventListener("change", () => {
+  const needed = preferentialSelect.value === "true";
+  if (preferentialDetails) preferentialDetails.hidden = !needed;
+  if (preferentialType) preferentialType.required = needed;
+  if (!needed) {
+    if (preferentialType) preferentialType.value = "";
+    if (preferentialDescription) preferentialDescription.value = "";
+  }
+});
+preferentialType?.addEventListener("change", () => {
+  if (preferentialDescription) preferentialDescription.required =
+    preferentialSelect?.value === "true" && preferentialType.value === "Outro";
+});
+returningSelect?.addEventListener("change", () => {
+  const returning = returningSelect.value === "Sim";
+  if (mediumNameWrap) mediumNameWrap.hidden = !returning;
+  if (mediumNameInput) {
+    mediumNameInput.required = returning;
+    if (!returning) mediumNameInput.value = "";
+  }
+});
+
+reservationForm?.addEventListener("submit", async (event) => {
   event.preventDefault();
-  // Intencionalmente não coleta nem grava dados enquanto a reserva não for homologada.
+  if (!reservationForm.reportValidity()) return;
+  if (!turnstileTokenForHomologation) {
+    if (turnstileStatus) turnstileStatus.textContent = "Conclua a verificação antirobô antes de enviar.";
+    return;
+  }
+  const value = (id) => document.getElementById(id)?.value?.trim() ?? "";
+  const payload = {
+    gira_id: value("event"),
+    nome_completo: value("full-name"),
+    data_nascimento: value("dob"),
+    telefone: value("phone"),
+    email: value("email"),
+    primeira_vez: value("first-time"),
+    preferencial: value("preferential") === "true",
+    turnstile_token: turnstileTokenForHomologation,
+  };
+  if (payload.preferencial) {
+    payload.tipo_preferencial = value("preferential-type");
+    if (payload.tipo_preferencial === "Outro") payload.descricao_preferencial = value("preferential-description");
+  }
+  if (value("returning")) payload.retorno = value("returning");
+  if (value("returning") === "Sim") payload.medium_nome = value("medium-name");
+  reservationSubmit.disabled = true;
+  reservationSubmit.textContent = "Enviando…";
+  const configMessage = document.getElementById("config-message");
+  if (configMessage) configMessage.textContent = "Validando dados e disponibilidade…";
+  try {
+    const response = await fetch(SUPABASE_URL + "/functions/v1/criar-reserva", {
+      method: "POST",
+      headers: { apikey: SUPABASE_PUBLIC_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível concluir a reserva. Tente novamente.");
+    reservationForm.reset();
+    turnstileTokenForHomologation = null;
+    if (window.turnstile?.reset) window.turnstile.reset();
+    if (preferentialDetails) preferentialDetails.hidden = true;
+    if (mediumNameWrap) mediumNameWrap.hidden = true;
+    if (preferentialType) preferentialType.required = false;
+    if (preferentialDescription) preferentialDescription.required = false;
+    if (configMessage) configMessage.textContent = result.message || "Solicitação recebida.";
+    if (turnstileStatus) turnstileStatus.textContent = "Verificação utilizada. Faça uma nova verificação para outra solicitação.";
+  } catch (error) {
+    turnstileTokenForHomologation = null;
+    if (window.turnstile?.reset) window.turnstile.reset();
+    if (configMessage) configMessage.textContent = error instanceof Error ? error.message : "Serviço indisponível. Tente novamente.";
+    if (turnstileStatus) turnstileStatus.textContent = "Por segurança, a verificação foi reiniciada.";
+  } finally {
+    reservationSubmit.disabled = false;
+    reservationSubmit.textContent = "Solicitar reserva";
+  }
 });
 
 loadPublishedGiras();
