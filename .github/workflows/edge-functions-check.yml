@@ -77,6 +77,9 @@ jobs:
       - name: Verificar admin-restaurar-backup
         run: deno check supabase/functions/admin-restaurar-backup/index.ts
 
+      - name: Verificar admin-import-reservas
+        run: deno check supabase/functions/admin-import-reservas/index.ts
+
   reservation-flow-integration:
     # A integração com Docker roda no push da branch; PR mantém validação estática e evita pulls duplicados do GHCR.
     if: github.event_name != 'pull_request'
