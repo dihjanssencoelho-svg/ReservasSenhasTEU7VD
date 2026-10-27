@@ -167,6 +167,12 @@ jobs:
           rollback;
           SQL
 
+      - name: Testar fluxo administrativo positivo com fixtures locais e rollback
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/admin-reservation-flow.test.sql
+
       - name: Testar concorrência de numeração e capacidade
         env:
           LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
