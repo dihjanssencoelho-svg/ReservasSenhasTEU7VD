@@ -125,6 +125,39 @@ jobs:
           $security$;
           SQL
 
+      - name: Confirmar que RPCs administrativas rejeitam sessão sem perfil admin
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          begin;
+          set local role authenticated;
+          do $guard$
+          begin
+            begin
+              perform public.teu7vd_cancelar_reserva('00000000-0000-4000-8000-000000000001'::uuid, 'teste sem admin');
+              raise exception 'Falha de segurança: cancelamento aceito sem perfil admin';
+            exception when sqlstate '42501' then
+              null;
+            end;
+            begin
+              perform public.teu7vd_excluir_reserva('00000000-0000-4000-8000-000000000001'::uuid, 'teste sem admin');
+              raise exception 'Falha de segurança: exclusão aceita sem perfil admin';
+            exception when sqlstate '42501' then
+              null;
+            end;
+            begin
+              perform public.teu7vd_reabrir_reserva('00000000-0000-4000-8000-000000000001'::uuid, 'teste sem admin');
+              raise exception 'Falha de segurança: reabertura aceita sem perfil admin';
+            exception when sqlstate '42501' then
+              null;
+            end;
+            raise notice 'PASSOU: RPCs administrativas recusaram sessão autenticada sem perfil admin';
+          end;
+          $guard$;
+          rollback;
+          SQL
+
       - name: Testar concorrência de numeração e capacidade
         env:
           LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
