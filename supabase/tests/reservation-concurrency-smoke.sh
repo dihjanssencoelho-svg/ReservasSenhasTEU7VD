@@ -75,8 +75,8 @@ worker "$GIRA_A" 2 "$TIPO_CAP" cap &
 pid2=$!
 wait "$pid1"; wait "$pid2"
 
-SUCCESS="$(grep -l '^success$' "$TMP"/status-cap-* 2>/dev/null | wc -l | tr -d ' ')"
-REJECTED="$(grep -l '^rejected$' "$TMP"/status-cap-* 2>/dev/null | wc -l | tr -d ' ')"
+SUCCESS="$(awk '$0 == "success" { n++ } END { print n+0 }' "$TMP"/status-cap-*)"
+REJECTED="$(awk '$0 == "rejected" { n++ } END { print n+0 }' "$TMP"/status-cap-*)"
 echo "Diagnóstico capacidade: sucessos=$SUCCESS rejeições=$REJECTED" >&2
 if [ "$SUCCESS" -ne 1 ] || [ "$REJECTED" -ne 1 ]; then
   echo "FALHA: capacidade esperava 1 sucesso/1 rejeição; obtido $SUCCESS/$REJECTED." >&2
@@ -93,8 +93,8 @@ worker "$GIRA_C" 4 "$TIPO_NUM" num &
 pid4=$!
 wait "$pid3"; wait "$pid4"
 
-SUCCESS="$(grep -l '^success$' "$TMP"/status-num-* 2>/dev/null | wc -l | tr -d ' ')"
-REJECTED="$(grep -l '^rejected$' "$TMP"/status-num-* 2>/dev/null | wc -l | tr -d ' ')"
+SUCCESS="$(awk '$0 == "success" { n++ } END { print n+0 }' "$TMP"/status-num-*)"
+REJECTED="$(awk '$0 == "rejected" { n++ } END { print n+0 }' "$TMP"/status-num-*)
 echo "Diagnóstico numeração: sucessos=$SUCCESS rejeições=$REJECTED" >&2
 if [ "$SUCCESS" -ne 2 ] || [ "$REJECTED" -ne 0 ]; then
   echo "FALHA: numeração concorrente esperava 2 sucessos; obtido $SUCCESS sucessos/$REJECTED rejeições." >&2
