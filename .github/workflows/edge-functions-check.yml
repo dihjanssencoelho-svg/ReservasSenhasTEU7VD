@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: read
-  packages: read
 
 # Serializa integrações e evita cancelar uma homologação em andamento.
 # PRs diferentes usam grupos próprios; push da mesma branch aguarda em fila.
@@ -87,6 +86,8 @@ jobs:
     name: Integração local de reservas (rollback)
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      SUPABASE_EXPERIMENTAL_STACK: "1"
     steps:
       - name: Baixar código
         uses: actions/checkout@v4
@@ -94,33 +95,27 @@ jobs:
       - name: Instalar Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 2.75.0
-
-      - name: Autenticar pull de imagens do GHCR
-        env:
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GHCR_USER: ${{ github.actor }}
-        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin || echo "Autenticação GHCR indisponível; tentando pull público com backoff."
+          version: 2.121.0
 
       - name: Iniciar Supabase local e aplicar migrações
         run: |
-          # Serializa execuções da mesma branch e usa backoff maior para limites transitórios do GHCR.
+          # O runtime nativo evita os pulls do GHCR e preserva o banco local descartável.
           started=false
           for attempt in 1 2 3 4 5; do
             echo "Inicialização local Supabase — tentativa $attempt/5"
-            if supabase start; then
+            if supabase start --runtime native; then
               started=true
               break
             fi
             if [ "$attempt" -lt 5 ]; then
-              supabase stop --no-backup || true
+              supabase stop || true
               delay=$((attempt * 20))
-              echo "Falha no pull de imagem; nova tentativa em ${delay}s."
+              echo "Falha temporária ao preparar o runtime nativo; nova tentativa em ${delay}s."
               sleep "$delay"
             fi
           done
           if [ "$started" != "true" ]; then
-            echo "Supabase local não iniciou após 5 tentativas; verificar disponibilidade do registry Docker."
+            echo "Supabase local não iniciou após 5 tentativas; verificar os downloads do runtime nativo."
             exit 1
           fi
           supabase db reset
