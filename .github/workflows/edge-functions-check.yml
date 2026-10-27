@@ -82,8 +82,8 @@ jobs:
         run: deno check supabase/functions/admin-import-reservas/index.ts
 
   reservation-flow-integration:
-    # A integração com Docker roda no push da branch; PR mantém validação estática e evita pulls duplicados do GHCR.
-    if: github.event_name != 'pull_request'
+    # Executa também em PRs internos; PRs de forks não puxam imagens nem acessam o backend.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     name: Integração local de reservas (rollback)
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -239,8 +239,8 @@ jobs:
 
   runtime-smoke:
     name: Smoke HTTP real sem mutações
-    # Não chamar o backend real a partir de pull requests de terceiros.
-    if: github.event_name != 'pull_request'
+    # Casos negativos sem mutações podem rodar em PRs internos; forks não acessam o backend.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -256,7 +256,8 @@ jobs:
 
   browser-smoke:
     name: Smoke do portal no navegador
-    if: github.event_name != 'pull_request'
+    # PRs internos validam o HTML local e o formulário publicado; forks ficam isolados.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
