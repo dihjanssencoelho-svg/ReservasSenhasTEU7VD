@@ -100,7 +100,7 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GHCR_USER: ${{ github.actor }}
-        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+        run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin || echo "Autenticação GHCR indisponível; tentando pull público com backoff."
 
       - name: Iniciar Supabase local e aplicar migrações
         run: |
