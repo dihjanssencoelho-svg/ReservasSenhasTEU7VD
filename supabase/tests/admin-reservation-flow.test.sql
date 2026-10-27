@@ -28,6 +28,7 @@ declare
   v_restore_id uuid;
   v_backup jsonb;
   v_reserva uuid;
+  v_excedente uuid;
   v_count integer;
   v_status text;
   v_actor uuid := 'dddddddd-dddd-4ddd-8ddd-ddddddddddd4';
@@ -53,6 +54,7 @@ begin
     'pessoa-excedente@example.invalid','Não',false,null,null,null,null,
     'Autorização administrativa de homologação'
   );
+  v_excedente := (v_result->>'reservation_id')::uuid;
   execute 'reset role';
   if v_result->>'success' <> 'true' then raise exception 'Falha: excedente administrativo não foi aceito'; end if;
   if not exists(select 1 from public.reservas where id=(v_result->>'reservation_id')::uuid and origem='painel_admin_excedente') then
@@ -124,6 +126,13 @@ begin
     raise exception 'Falha: excedente aceito sem perfil administrativo';
   exception when sqlstate '42501' then null;
   end;
+
+  -- Libera a vaga do excedente autorizado antes de validar a reabertura.
+  execute 'set local role service_role';
+  if public.teu7vd_cancelar_reserva_v2(v_excedente,'liberar vaga para testar reabertura',v_actor) is not true then
+    raise exception 'Falha: não foi possível cancelar o excedente de fixture';
+  end if;
+  execute 'reset role';
 
   execute 'set local role service_role';
   if public.teu7vd_cancelar_reserva_v2(v_reserva,'teste de homologação',v_actor) is not true then
