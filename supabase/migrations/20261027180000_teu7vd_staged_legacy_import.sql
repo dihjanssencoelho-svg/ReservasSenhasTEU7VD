@@ -63,7 +63,7 @@ begin
  if p_actor_id is null or not exists(select 1 from public.perfis_admin p where p.user_id=p_actor_id and p.ativo=true and p.papel='admin') then
   raise exception using errcode='42501',message='Apenas administrador ativo pode aplicar importação.';
  end if;
- if length(trim(coalesce(p_motivo,'')))<10) then raise exception using errcode='22023',message='Informe motivo de importação com pelo menos 10 caracteres.'; end if;
+ if length(trim(coalesce(p_motivo,'')))<10 or length(trim(coalesce(p_motivo,'')))>500 then raise exception using errcode='22023',message='Informe motivo de importação entre 10 e 500 caracteres.'; end if;
  select * into v_job from public.importacao_reservas_jobs where id=p_job_id for update;
  if not found or v_job.status<>'validado' then raise exception using errcode='P0002',message='Lote não encontrado ou já aplicado.'; end if;
  for x in select value from jsonb_array_elements(v_job.payload) loop
