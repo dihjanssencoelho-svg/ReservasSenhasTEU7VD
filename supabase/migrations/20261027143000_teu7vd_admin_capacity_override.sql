@@ -42,7 +42,7 @@ begin
 
   v_nome := regexp_replace(lower(trim(coalesce(p_nome_completo,''))), '[[:space:]]+', ' ', 'g');
   v_email := lower(trim(coalesce(p_email,'')));
-  v_telefone := regexp_replace(coalesce(p_telefone,''), '\\D', '', 'g');
+  v_telefone := regexp_replace(coalesce(p_telefone,''), '[^0-9]', '', 'g');
   v_tipo := nullif(trim(coalesce(p_tipo_preferencial,'')), '');
   if v_nome = '' or p_data_nascimento is null or v_email = '' or v_telefone = ''
      or nullif(trim(coalesce(p_primeira_vez,'')), '') is null then
@@ -68,7 +68,7 @@ begin
       and regexp_replace(lower(trim(r.nome_completo)), '[[:space:]]+', ' ', 'g')=v_nome
       and r.data_nascimento=p_data_nascimento
       and lower(trim(coalesce(r.email,'')))=v_email
-      and regexp_replace(coalesce(r.telefone,''), '\\D', '', 'g')=v_telefone
+      and regexp_replace(coalesce(r.telefone,''), '[^0-9]', '', 'g')=v_telefone
   ) then
     raise exception using errcode = '23505', message = 'Já existe reserva para esta pessoa nesta gira/data.';
   end if;
