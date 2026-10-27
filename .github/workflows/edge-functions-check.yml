@@ -161,11 +161,11 @@ jobs:
               or has_table_privilege('authenticated','public.giras','DELETE') then
               raise exception 'Mutação direta de giras concedida a anon/authenticated';
             end if;
-            if has_function_privilege('anon','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text)','EXECUTE')
-              or has_function_privilege('authenticated','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text)','EXECUTE') then
+            if has_function_privilege('anon','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text,text)','EXECUTE')
+              or has_function_privilege('authenticated','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text,text)','EXECUTE') then
               raise exception 'RPC de criação acessível diretamente a anon/authenticated';
             end if;
-            if not has_function_privilege('service_role','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text)','EXECUTE') then
+            if not has_function_privilege('service_role','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text,text)','EXECUTE') then
               raise exception 'service_role sem EXECUTE na RPC de criação';
             end if;
             raise notice 'PASSOU: RLS ativo e privilégios diretos mínimos verificados';
