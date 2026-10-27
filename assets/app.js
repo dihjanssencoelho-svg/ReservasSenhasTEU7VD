@@ -220,6 +220,41 @@ function showTeamSession(role) {
   detail.textContent = role === "operador"
     ? "Consulta protegida. Dados de contato, nascimento e identificação do médium são ocultados para este papel. Ações sensíveis estão bloqueadas durante a homologação."
     : "Consulta protegida de reservas. Cancelar, reabrir e excluir permanecem bloqueados até a homologação de permissões e APIs.";
+  const overCapacityForm = document.createElement("form");
+  overCapacityForm.className = "admin-filters";
+  overCapacityForm.hidden = role !== "admin";
+  overCapacityForm.innerHTML = `
+    <h4>Cadastro administrativo acima da capacidade</h4>
+    <p class="small muted">Disponível apenas para administrador ativo. Exige gira publicada, lotação já atingida, motivo e auditoria.</p>
+    <label for="override-gira">Gira publicada</label><select id="override-gira" name="gira_id" required><option value="">Carregando giras…</option></select>
+    <label for="override-name">Nome completo</label><input id="override-name" name="nome_completo" maxlength="180" required>
+    <label for="override-dob">Data de nascimento</label><input id="override-dob" name="data_nascimento" type="date" required>
+    <label for="override-phone">Telefone</label><input id="override-phone" name="telefone" type="tel" maxlength="32" required>
+    <label for="override-email">E-mail</label><input id="override-email" name="email" type="email" maxlength="254" required>
+    <label for="override-first-time">Primeira vez?</label><select id="override-first-time" name="primeira_vez" required><option value="">Selecione</option><option>Sim</option><option>Não</option></select>
+    <label for="override-preferential">Atendimento preferencial?</label><select id="override-preferential" name="preferencial" required><option value="false">Não</option><option value="true">Sim</option></select>
+    <div id="override-preferential-wrap" hidden>
+      <label for="override-preferential-type">Tipo preferencial</label><select id="override-preferential-type" name="tipo_preferencial"><option value="">Selecione</option><option>Gestante</option><option>Idoso</option><option>Criança de Colo</option><option>PCD</option><option>Outro</option></select>
+      <label for="override-preferential-description">Descrição (obrigatória para Outro)</label><input id="override-preferential-description" name="descricao_preferencial" maxlength="300">
+    </div>
+    <label for="override-returning">Retorna com médium?</label><select id="override-returning" name="retorno"><option value="">Não informado</option><option>Sim</option><option>Não</option></select>
+    <label for="override-medium">Nome do médium (se aplicável)</label><input id="override-medium" name="medium_nome" maxlength="180">
+    <label for="override-reason">Motivo do excedente (5 a 500 caracteres)</label><textarea id="override-reason" name="motivo_excedente" minlength="5" maxlength="500" required></textarea>
+    <button type="submit">Registrar excedente</button>
+    <p id="override-status" class="small muted" role="status" aria-live="polite"></p>`;
+  const overridePreferential = overCapacityForm.querySelector("#override-preferential");
+  const overridePreferentialWrap = overCapacityForm.querySelector("#override-preferential-wrap");
+  const overridePreferentialType = overCapacityForm.querySelector("#override-preferential-type");
+  const overridePreferentialDescription = overCapacityForm.querySelector("#override-preferential-description");
+  overridePreferential?.addEventListener("change", () => {
+    const active = overridePreferential.value === "true";
+    overridePreferentialWrap.hidden = !active;
+    overridePreferentialType.required = active;
+    overridePreferentialDescription.required = active && overridePreferentialType.value === "Outro";
+  });
+  overridePreferentialType?.addEventListener("change", () => {
+    overridePreferentialDescription.required = overridePreferential.value === "true" && overridePreferentialType.value === "Outro";
+  });
   const filters = document.createElement("form");
   filters.className = "admin-filters";
   filters.innerHTML = `
@@ -270,6 +305,14 @@ function showTeamSession(role) {
         throw new Error("Consulta não autorizada ou indisponível.");
       }
       currentGiras = Array.isArray(result.giras) ? result.giras : [];
+      const overrideGira = overCapacityForm.querySelector("#override-gira");
+      if (overrideGira && overrideGira.options.length <= 1) {
+        overrideGira.replaceChildren(new Option("Selecione uma gira", ""));
+        for (const gira of currentGiras) {
+          const option = new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id);
+          overrideGira.add(option);
+        }
+      }
       const giraSelect = filters.elements.namedItem("gira_id");
       const selected = String(formData.get("gira_id") || "");
       if (giraSelect.options.length <= 1) {
@@ -314,6 +357,37 @@ function showTeamSession(role) {
       status.textContent = "Não foi possível carregar a listagem protegida. Nenhuma ação foi executada.";
     }
   };
+  overCapacityForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (role !== "admin" || !overCapacityForm.reportValidity()) return;
+    const token = getToken();
+    const out = overCapacityForm.querySelector("#override-status");
+    if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
+    const data = new FormData(overCapacityForm);
+    const payload = Object.fromEntries(data.entries());
+    payload.preferencial = payload.preferencial === "true";
+    if (!payload.preferencial) { payload.tipo_preferencial = ""; payload.descricao_preferencial = ""; }
+    if (payload.retorno !== "Sim") payload.medium_nome = "";
+    const submit = overCapacityForm.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    if (out) out.textContent = "Validando permissões, lotação e duplicidade…";
+    try {
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-criar-excedente", {
+        method: "POST",
+        headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify(payload), cache: "no-store"
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) throw new Error(result?.message || "Cadastro não concluído.");
+      overCapacityForm.reset();
+      overridePreferentialWrap.hidden = true;
+      if (out) out.textContent = result.message || "Cadastro registrado.";
+      page = 1;
+      await fetchReservations();
+    } catch (error) {
+      if (out) out.textContent = error instanceof Error ? error.message : "Cadastro não concluído.";
+    } finally { submit.disabled = false; }
+  });
   filters.addEventListener("submit", event => { event.preventDefault(); page = 1; fetchReservations(); });
   filters.addEventListener("reset", () => { page = 1; setTimeout(fetchReservations, 0); });
   const logout = document.createElement("button");
@@ -323,7 +397,8 @@ function showTeamSession(role) {
     clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
     if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  teamSession.append(heading, detail, filters, status, results, pagination, logout);
+  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, filters, status, results, pagination, logout);
+  else teamSession.append(heading, detail, filters, status, results, pagination, logout);
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
   fetchReservations();
