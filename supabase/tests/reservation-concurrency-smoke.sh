@@ -57,7 +57,7 @@ select public.teu7vd_criar_reserva(
   ('1990-01-0' || :'n')::date,
   '1198765432' || :'n',
   'concorrente-' || :'tipo' || '-' || :'n' || '@example.invalid',
-  'Não', false, null, null, null
+  'Não', false, null, null, null, null
 );
 SQL
   then
