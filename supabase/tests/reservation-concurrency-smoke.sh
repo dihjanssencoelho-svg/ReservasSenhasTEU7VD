@@ -36,9 +36,9 @@ psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -q \
 delete from public.auditoria where entidade_id in (
   select id::text from public.reservas where gira_id in (:'gira_a',:'gira_b',:'gira_c')
 );
-delete from public.reservas where gira_id in (:'gira_a',:'gira_b');
+delete from public.reservas where gira_id in (:'gira_a',:'gira_b',:'gira_c');
 delete from public.contadores_senha where tipo_gira in (:'tipo_cap',:'tipo_num');
-delete from public.giras where id in (:'gira_a',:'gira_b');
+delete from public.giras where id in (:'gira_a',:'gira_b',:'gira_c');
 insert into public.giras(id,titulo,data_gira,chave,limite_vagas,ativa,status,tipo_gira)
 values
   (:'gira_a','Teste concorrente capacidade',current_date + 40,'__teste_conc_cap',1,true,'publicada',:'tipo_cap'),
@@ -57,7 +57,7 @@ select public.teu7vd_criar_reserva(
   ('1990-01-0' || :'n')::date,
   '1198765432' || :'n',
   'concorrente-' || :'tipo' || '-' || :'n' || '@example.invalid',
-  'Não', false, null, null, null, null
+  'Não', false, null, null, null
 );
 SQL
   then
