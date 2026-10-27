@@ -392,24 +392,24 @@ function showTeamSession(role) {
   let importJobId = null;
   let importRows = null;
   importForm.querySelector("#download-import-template").addEventListener("click", () => {
-    const template = "gira_id;senha_original;nome_completo;data_nascimento;telefone;email;primeira_vez;retorno;medium_nome;preferencial;tipo_preferencial;descricao_preferencial;status;linha_origem\\r\\n";
+    const template = "gira_id;senha_original;nome_completo;data_nascimento;telefone;email;primeira_vez;retorno;medium_nome;preferencial;tipo_preferencial;descricao_preferencial;status;linha_origem\r\n";
     const url = URL.createObjectURL(new Blob(["\\uFEFF",template],{type:"text/csv;charset=utf-8"}));
     const a=document.createElement("a");a.href=url;a.download="modelo-importacao-teu7vd.csv";a.click();URL.revokeObjectURL(url);
   });
   function parseCsv(text) {
-    const delimiter = (text.split(/\\r?\\n/,1)[0].match(/;/g)||[]).length >= (text.split(/\\r?\\n/,1)[0].match(/,/g)||[]).length ? ";" : ",";
+    const delimiter = (text.split(/\r?\n/,1)[0].match(/;/g)||[]).length >= (text.split(/\r?\n/,1)[0].match(/,/g)||[]).length ? ";" : ",";
     const rows=[]; let row=[], field="", quoted=false;
     for(let i=0;i<text.length;i++){
       const ch=text[i];
       if(ch==='"'&&quoted&&text[i+1]==='"'){field+='"';i++;continue;}
       if(ch==='"'){quoted=!quoted;continue;}
       if(ch===delimiter&&!quoted){row.push(field);field="";continue;}
-      if((ch==="\\n"||ch==="\\r")&&!quoted){if(ch==="\\r"&&text[i+1]==="\\n")i++;row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);row=[];field="";continue;}
+      if((ch==="\n"||ch==="\r")&&!quoted){if(ch==="\r"&&text[i+1]==="\n")i++;row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);row=[];field="";continue;}
       field+=ch;
     }
     if(field.length||row.length){row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);}
     if(!rows.length)throw new Error("O CSV está vazio.");
-    const headers=rows.shift().map(v=>v.replace(/^\\uFEFF/,"").trim().toLowerCase());
+    const headers=rows.shift().map(v=>v.replace(/^\uFEFF/,"").trim().toLowerCase());
     const required=["gira_id","senha_original","nome_completo","status"];
     if(required.some(k=>!headers.includes(k)))throw new Error("Cabeçalhos obrigatórios: gira_id, senha_original, nome_completo e status.");
     return rows.map((values,i)=>{
