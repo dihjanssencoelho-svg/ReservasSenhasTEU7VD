@@ -16,7 +16,7 @@ permissions:
 # Evita duas inicializações Supabase simultâneas para o mesmo commit/branch,
 # reduzindo pulls duplicados e limites transitórios do registry de imagens.
 concurrency:
-  group: teu7vd-homologacao-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: teu7vd-homologacao-${{ github.workflow }}-${{ github.event_name == 'pull_request' && 'pr' || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -66,6 +66,8 @@ jobs:
         run: deno check supabase/functions/admin-reservas/index.ts
 
   reservation-flow-integration:
+    # A integração com Docker roda no push da branch; PR mantém validação estática e evita pulls duplicados do GHCR.
+    if: github.event_name != 'pull_request'
     name: Integração local de reservas (rollback)
     runs-on: ubuntu-latest
     timeout-minutes: 15
