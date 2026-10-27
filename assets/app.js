@@ -376,6 +376,81 @@ function showTeamSession(role) {
     } catch (error) { status.textContent = error instanceof Error ? error.message : "Restauração não aplicada."; }
     finally { button.disabled = !restoreJobId; }
   });
+  const importForm = document.createElement("form");
+  importForm.className = "admin-filters";
+  importForm.hidden = role !== "admin";
+  importForm.innerHTML = `
+    <h4>Importar planilha histórica (CSV)</h4>
+    <p class="small muted">A importação exige mapear cada linha para uma gira existente por gira_id. Senhas originais são preservadas; reservas ativas não podem exceder a capacidade. A prévia não altera reservas.</p>
+    <button id="download-import-template" type="button" class="secondary-button">Baixar modelo CSV</button>
+    <label for="import-csv-file">Arquivo CSV (até 5.000 linhas)</label><input id="import-csv-file" type="file" accept=".csv,text/csv" required>
+    <button type="submit">Validar importação (prévia)</button>
+    <p id="import-preview-status" class="small muted" role="status" aria-live="polite"></p>
+    <label for="import-reason">Motivo da importação (mínimo 10 caracteres)</label><textarea id="import-reason" maxlength="500" minlength="10" required></textarea>
+    <label for="import-confirm">Digite IMPORTAR para confirmar</label><input id="import-confirm" maxlength="20" autocomplete="off" required>
+    <button id="import-apply" type="button" disabled>Aplicar importação</button>`;
+  let importJobId = null;
+  let importRows = null;
+  importForm.querySelector("#download-import-template").addEventListener("click", () => {
+    const template = "gira_id;senha_original;nome_completo;data_nascimento;telefone;email;primeira_vez;retorno;medium_nome;preferencial;tipo_preferencial;descricao_preferencial;status;linha_origem\\r\\n";
+    const url = URL.createObjectURL(new Blob(["\\uFEFF",template],{type:"text/csv;charset=utf-8"}));
+    const a=document.createElement("a");a.href=url;a.download="modelo-importacao-teu7vd.csv";a.click();URL.revokeObjectURL(url);
+  });
+  function parseCsv(text) {
+    const delimiter = (text.split(/\\r?\\n/,1)[0].match(/;/g)||[]).length >= (text.split(/\\r?\\n/,1)[0].match(/,/g)||[]).length ? ";" : ",";
+    const rows=[]; let row=[], field="", quoted=false;
+    for(let i=0;i<text.length;i++){
+      const ch=text[i];
+      if(ch==='"'&&quoted&&text[i+1]==='"'){field+='"';i++;continue;}
+      if(ch==='"'){quoted=!quoted;continue;}
+      if(ch===delimiter&&!quoted){row.push(field);field="";continue;}
+      if((ch==="\\n"||ch==="\\r")&&!quoted){if(ch==="\\r"&&text[i+1]==="\\n")i++;row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);row=[];field="";continue;}
+      field+=ch;
+    }
+    if(field.length||row.length){row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);}
+    if(!rows.length)throw new Error("O CSV está vazio.");
+    const headers=rows.shift().map(v=>v.replace(/^\\uFEFF/,"").trim().toLowerCase());
+    const required=["gira_id","senha_original","nome_completo","status"];
+    if(required.some(k=>!headers.includes(k)))throw new Error("Cabeçalhos obrigatórios: gira_id, senha_original, nome_completo e status.");
+    return rows.map((values,i)=>{
+      const item={};headers.forEach((h,j)=>item[h]=(values[j]??"").trim());
+      item.preferencial=["true","sim","1","yes"].includes(String(item.preferencial||"").toLowerCase());
+      item.linha_origem=item.linha_origem||String(i+2);
+      return item;
+    });
+  }
+  importForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if(role!=="admin"||!importForm.reportValidity())return;
+    const token=getToken(),file=importForm.querySelector("#import-csv-file").files?.[0],status=importForm.querySelector("#import-preview-status");
+    if(!token||!file){status.textContent="Sessão administrativa e CSV são obrigatórios.";return;}
+    if(file.size>6000000){status.textContent="O CSV excede 6 MB.";return;}
+    try{
+      importRows=parseCsv(await file.text());
+      if(importRows.length>5000)throw new Error("O CSV excede 5.000 linhas.");
+      status.textContent="Validando "+importRows.length+" linha(s) no servidor…";
+      const response=await fetch(SUPABASE_URL+"/functions/v1/admin-import-reservas",{method:"POST",headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action:"preview_import",rows:importRows}),cache:"no-store"});
+      const result=await response.json().catch(()=>null);
+      if(!response.ok||!result?.success)throw new Error(result?.message||"Importação rejeitada.");
+      importJobId=result.job_id;importForm.querySelector("#import-apply").disabled=false;
+      status.textContent=result.message+" Lote: "+importJobId+" · "+JSON.stringify(result.resumo);
+    }catch(error){importJobId=null;importRows=null;importForm.querySelector("#import-apply").disabled=true;status.textContent=error instanceof Error?error.message:"Importação rejeitada.";}
+  });
+  importForm.querySelector("#import-apply").addEventListener("click",async()=>{
+    const token=getToken(),status=importForm.querySelector("#import-preview-status"),reason=importForm.querySelector("#import-reason").value.trim();
+    if(role!=="admin"||!token||!importJobId||reason.length<10||reason.length>500||importForm.querySelector("#import-confirm").value.trim()!=="IMPORTAR"){
+      status.textContent="Informe motivo válido e digite exatamente IMPORTAR.";return;
+    }
+    if(!window.confirm("A importação criará reservas e poderá falhar integralmente por duplicidade, senha conflitante ou capacidade. Continuar?"))return;
+    const button=importForm.querySelector("#import-apply");button.disabled=true;
+    try{
+      const response=await fetch(SUPABASE_URL+"/functions/v1/admin-import-reservas",{method:"POST",headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action:"apply_import",job_id:importJobId,reason}),cache:"no-store"});
+      const result=await response.json().catch(()=>null);
+      if(!response.ok||!result?.success)throw new Error(result?.message||"Importação não aplicada.");
+      status.textContent=result.message+" "+JSON.stringify(result.resumo);importJobId=null;importRows=null;importForm.reset();await fetchReservations();
+    }catch(error){status.textContent=error instanceof Error?error.message:"Importação não aplicada.";}
+    finally{button.disabled=!importJobId;}
+  });
   const filters = document.createElement("form");
   filters.className = "admin-filters";
   filters.innerHTML = `
@@ -612,7 +687,7 @@ function showTeamSession(role) {
     clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
     if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, settingsForm, restoreForm, filters, status, exportBar, results, pagination, logout);
+  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, settingsForm, importForm, restoreForm, filters, status, exportBar, results, pagination, logout);
   else teamSession.append(heading, detail, filters, status, exportBar, results, pagination, logout);
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
