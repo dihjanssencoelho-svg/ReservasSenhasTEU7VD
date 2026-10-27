@@ -22,6 +22,8 @@ values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5','Gira administrativa de teste',
 do $admin_flow$
 declare
   v_result jsonb;
+  v_import jsonb;
+  v_import_id uuid;
   v_reserva uuid;
   v_count integer;
   v_status text;
@@ -56,6 +58,40 @@ begin
   if not exists(select 1 from public.auditoria where acao='reserva_criada_excedente' and entidade_id=v_result->>'reservation_id'
     and user_id=v_actor and detalhes->>'motivo'='Autorização administrativa de homologação') then
     raise exception 'Falha: excedente não gerou auditoria com ator e motivo';
+  end if;
+
+  -- Importação histórica: prévia não insere reservas; aplicação é atômica e auditada.
+  v_import := public.teu7vd_preparar_importacao_reservas(v_actor,
+    jsonb_build_array(jsonb_build_object(
+      'gira_id','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5',
+      'senha_original','LEGADO-TESTE-01','nome_completo','Pessoa Legada Teste',
+      'data_nascimento','1988-08-09','telefone','11999990007',
+      'email','legado@example.invalid','primeira_vez','Não','preferencial',false,
+      'status','cancelada','linha_origem','2'
+    )));
+  v_import_id := (v_import->>'job_id')::uuid;
+  if v_import->>'success'<>'true' then raise exception 'Falha: prévia de importação não validada'; end if;
+  if exists(select 1 from public.reservas where email='legado@example.invalid') then
+    raise exception 'Falha: prévia de importação alterou reservas antes da aplicação';
+  end if;
+  execute 'set local role service_role';
+  v_import := public.teu7vd_aplicar_importacao_reservas(v_actor,v_import_id,'Importação de fixture para homologação');
+  execute 'reset role';
+  if v_import->>'success'<>'true' or not exists(select 1 from public.reservas where email='legado@example.invalid' and status='cancelada' and legado_importado=true and senha_original='LEGADO-TESTE-01') then
+    raise exception 'Falha: importação histórica não preservou senha/status';
+  end if;
+  if not exists(select 1 from public.auditoria where acao='importacao_reservas_aplicada' and entidade_id=v_import_id::text and user_id=v_actor) then
+    raise exception 'Falha: importação não foi auditada';
+  end if;
+
+  -- Configurações só podem ser atualizadas por admin ativo e geram auditoria.
+  execute 'set local role service_role';
+  if public.teu7vd_atualizar_configuracoes_portal('Mensagem pública de teste','Confirmação de teste','#17131e','#c9a86a',3,v_actor) is not true then
+    raise exception 'Falha: atualização das configurações não confirmou sucesso';
+  end if;
+  execute 'reset role';
+  if not exists(select 1 from public.auditoria where acao='configuracoes_portal_atualizadas' and user_id=v_actor) then
+    raise exception 'Falha: configuração não gerou auditoria';
   end if;
 
   begin
