@@ -11,26 +11,27 @@ esac
 
 GIRA_A="cccccccc-cccc-4ccc-8ccc-ccccccccccc3"
 GIRA_B="dddddddd-dddd-4ddd-8ddd-ddddddddddd4"
+GIRA_C="eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5"
 TIPO_CAP="__concorrencia_capacidade_teu7vd"
 TIPO_NUM="__concorrencia_numero_teu7vd"
 TMP="$(mktemp -d)"
 cleanup() {
   psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -q \
-    -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" \
+    -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" -v gira_c="$GIRA_C" \
     -v tipo_cap="$TIPO_CAP" -v tipo_num="$TIPO_NUM" <<'SQL' || true
 delete from public.auditoria where entidade_id in (
-  select id::text from public.reservas where gira_id in (:'gira_a',:'gira_b')
+  select id::text from public.reservas where gira_id in (:'gira_a',:'gira_b',:'gira_c')
 );
 delete from public.reservas where gira_id in (:'gira_a',:'gira_b');
 delete from public.contadores_senha where tipo_gira in (:'tipo_cap',:'tipo_num');
-delete from public.giras where id in (:'gira_a',:'gira_b');
+delete from public.giras where id in (:'gira_a',:'gira_b',:'gira_c');
 SQL
   rm -rf "$TMP"
 }
 trap cleanup EXIT
 
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -q \
-  -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" \
+  -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" -v gira_c="$GIRA_C" \
   -v tipo_cap="$TIPO_CAP" -v tipo_num="$TIPO_NUM" <<'SQL'
 delete from public.auditoria where entidade_id in (
   select id::text from public.reservas where gira_id in (:'gira_a',:'gira_b')
@@ -41,7 +42,8 @@ delete from public.giras where id in (:'gira_a',:'gira_b');
 insert into public.giras(id,titulo,data_gira,chave,limite_vagas,ativa,status,tipo_gira)
 values
   (:'gira_a','Teste concorrente capacidade',current_date + 40,'__teste_conc_cap',1,true,'publicada',:'tipo_cap'),
-  (:'gira_b','Teste concorrente numeração A',current_date + 41,'__teste_conc_num_a',2,true,'publicada',:'tipo_num');
+  (:'gira_b','Teste concorrente numeração A',current_date + 41,'__teste_conc_num_a',2,true,'publicada',:'tipo_num'),
+  (:'gira_c','Teste concorrente numeração B',current_date + 42,'__teste_conc_num_b',2,true,'publicada',:'tipo_num');
 SQL
 
 worker() {
@@ -85,7 +87,7 @@ fi
 worker "$GIRA_B" 3 "$TIPO_NUM" num &
 pid3=$!
 # A segunda chamada usa a mesma gira B, cuja capacidade é 2.
-worker "$GIRA_B" 4 "$TIPO_NUM" num &
+worker "$GIRA_C" 4 "$TIPO_NUM" num &
 pid4=$!
 wait "$pid3"; wait "$pid4"
 
@@ -98,7 +100,7 @@ if [ "$SUCCESS" -ne 2 ] || [ "$REJECTED" -ne 0 ]; then
 fi
 
 psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -q \
-  -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" \
+  -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" -v gira_c="$GIRA_C" \
   -v tipo_cap="$TIPO_CAP" -v tipo_num="$TIPO_NUM" <<'SQL'
 do $check$
 declare v_count bigint; v_counter bigint; v_audit bigint; v_min bigint; v_max bigint;
@@ -112,16 +114,16 @@ begin
   if v_audit <> 1 then raise exception 'Falha capacidade: esperada 1 auditoria, obtidas %',v_audit; end if;
 
   select count(*),min(senha_numero),max(senha_numero) into v_count,v_min,v_max
-    from public.reservas where gira_id='dddddddd-dddd-4ddd-8ddd-ddddddddddd4' and status='ativa';
+    from public.reservas where gira_id in ('dddddddd-dddd-4ddd-8ddd-ddddddddddd4','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5') and status='ativa';
   if v_count <> 2 then raise exception 'Falha numeração: esperadas 2 reservas, obtidas %',v_count; end if;
   if v_min <> 1 or v_max <> 2 then raise exception 'Falha numeração: esperadas senhas consecutivas 1 e 2, obtidas % e %',v_min,v_max; end if;
-  if (select count(distinct senha_numero) from public.reservas where gira_id='dddddddd-dddd-4ddd-8ddd-ddddddddddd4') <> 2 then
+  if (select count(distinct senha_numero) from public.reservas where gira_id in ('dddddddd-dddd-4ddd-8ddd-ddddddddddd4','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5')) <> 2 then
     raise exception 'Falha numeração: senha duplicada em chamadas concorrentes';
   end if;
   select proxima_senha into v_counter from public.contadores_senha where tipo_gira='__concorrencia_numero_teu7vd';
   if v_counter <> 3 then raise exception 'Falha numeração: contador esperado 3 após duas reservas, obtido %',v_counter; end if;
   select count(*) into v_audit from public.auditoria a join public.reservas r on a.entidade_id=r.id::text
-    where r.gira_id='dddddddd-dddd-4ddd-8ddd-ddddddddddd4' and a.acao='reserva_criada';
+    where r.gira_id in ('dddddddd-dddd-4ddd-8ddd-ddddddddddd4','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5') and a.acao='reserva_criada';
   if v_audit <> 2 then raise exception 'Falha numeração: esperadas 2 auditorias, obtidas %',v_audit; end if;
   raise notice 'PASSOU: concorrência de capacidade e atribuição de senhas consecutivas únicas';
 end;
