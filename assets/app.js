@@ -1,7 +1,7 @@
 /*
- * TEU7VD — leitura pública da agenda publicada.
+ * TEU7VD — portal público e painel administrativo de reservas.
  * A chave publishable é própria para frontend; nunca incluir chave secret/service_role aqui.
- * O formulário permanece desativado até deploy/configuração e homologação do backend de reservas.
+ * O envio público exige validação Turnstile e autorização do backend.
  */
 const SUPABASE_URL = "https://emwnytvlbpgiwqswojze.supabase.co";
 const SUPABASE_PUBLIC_KEY = "sb_publishable_gKuJbxS6UBnsodjgdasDIQ_G2k_FL31";
@@ -138,12 +138,42 @@ async function loadPublishedGiras() {
           metric.vagas_restantes + " vaga(s) restante(s)") + " · " + metric.ocupacao_percentual + "% ocupadas"
         : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
       const vacancyClass = metric && metric.poucas_vagas ? "gira-vacancies low-vacancy" : "gira-vacancies";
-      return '<article class="gira-card"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
+      return '<article class="gira-card" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-label="Selecionar ' + escapeHtml(gira.titulo) + '"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
         '<p class="' + vacancyClass + '">' + escapeHtml(vacancyText) + '</p>' +
         '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></article>';
     }).join("");
+    const selectGira = (card) => {
+      const eventSelect = document.getElementById("event");
+      if (!eventSelect) return;
+      const giraId = card?.dataset?.giraId;
+      if (!giraId || !Array.from(eventSelect.options).some(option => option.value === giraId && !option.disabled)) return;
+      eventSelect.value = giraId;
+      girasList.querySelectorAll(".gira-card").forEach(item => {
+        const selected = item === card;
+        item.classList.toggle("selected", selected);
+        item.setAttribute("aria-pressed", String(selected));
+      });
+      document.getElementById("reservation-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      eventSelect.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    girasList.querySelectorAll(".gira-card").forEach(card => {
+      card.addEventListener("click", () => selectGira(card));
+      card.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          selectGira(card);
+        }
+      });
+    });
+    eventSelect?.addEventListener("change", () => {
+      girasList.querySelectorAll(".gira-card").forEach(card => {
+        const selected = card.dataset.giraId === eventSelect.value;
+        card.classList.toggle("selected", selected);
+        card.setAttribute("aria-pressed", String(selected));
+      });
+    });
   } catch {
     girasList.className = "empty-state";
     girasList.innerHTML = '<div class="calendar-icon" aria-hidden="true">!</div><h3>Agenda temporariamente indisponível</h3><p>Tente novamente mais tarde. Nenhum dado pessoal foi enviado.</p>';
