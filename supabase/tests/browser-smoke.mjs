@@ -19,20 +19,30 @@ try {
 
   const name = page.locator("#full-name");
   const event = page.locator("#event");
-  const submit = page.locator("#reservation-form button[type='button']");
-  assert.equal(await name.isDisabled(), true, "O campo de nome deveria estar desabilitado.");
-  assert.equal(await event.isDisabled(), true, "O seletor de gira deveria estar desabilitado.");
-  assert.equal(await submit.isDisabled(), true, "O botão de reserva deveria estar desabilitado.");
-  assert.equal(await submit.innerText(), "Reservas ainda não liberadas");
+  const submit = page.locator("#reservation-submit");
+  assert.equal(await name.isDisabled(), false, "O campo de nome deveria estar liberado.");
+  assert.equal(await event.isDisabled(), false, "O seletor de gira deveria estar liberado.");
+  assert.equal(await submit.isDisabled(), false, "O botão de solicitação deveria estar liberado.");
+  assert.equal(await submit.innerText(), "Solicitar reserva");
 
-  // Tentativa de disparo programático: o listener deve bloquear e nenhuma chamada de reserva pode ocorrer.
-  await page.locator("#reservation-form").evaluate((form) => form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+  // Sem token Turnstile, mesmo um submit programático não deve chamar o endpoint.
+  await page.locator("#reservation-form").evaluate((form) => {
+    form.querySelector("#full-name").value = "Pessoa de teste";
+    form.querySelector("#event").innerHTML = '<option value="123e4567-e89b-12d3-a456-426614174000">Gira de teste</option>';
+    form.querySelector("#event").value = "123e4567-e89b-12d3-a456-426614174000";
+    form.querySelector("#dob").value = "1990-04-12";
+    form.querySelector("#phone").value = "11987654321";
+    form.querySelector("#email").value = "teste@example.com";
+    form.querySelector("#first-time").value = "Sim";
+    form.querySelector("#preferential").value = "false";
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
   await page.waitForTimeout(1000);
   assert.equal(createReservationRequests.length, 0, "Foi detectada uma chamada ao endpoint criar-reserva.");
 
   // Confirma que a área da equipe começa fechada, sem iniciar login ou enviar credenciais.
   assert.equal(await page.locator("#team-access").isHidden(), true, "A área restrita deveria iniciar fechada.");
-  console.log("OK portal HTTP 200; formulário bloqueado; nenhuma chamada criar-reserva; área da equipe fechada.");
+  console.log("OK portal HTTP 200; formulário ativo; envio sem Turnstile bloqueado; nenhuma chamada criar-reserva; área da equipe fechada.");
 } finally {
   await browser.close();
 }
