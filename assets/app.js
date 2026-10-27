@@ -54,12 +54,14 @@ function birthdayWithinGiraWeek(birthDate, giraDate) {
   const candidates = [year - 1, year, year + 1].map(y => {
     const d = new Date(Date.UTC(y, month, day));
     if (d.getUTCMonth() !== month) d.setUTCDate(0);
-    return d;
+    return d.getTime();
   });
-  const target = Date.UTC(Number(gira[1]), Number(gira[2]) - 1, Number(gira[3]));
-  return candidates.some(d => Math.abs(Math.round((d.getTime() - target) / 86400000)) <= 6);
+  const target = new Date(Date.UTC(Number(gira[1]), Number(gira[2]) - 1, Number(gira[3])));
+  const isoDay = target.getUTCDay() || 7;
+  const weekStart = Date.UTC(target.getUTCFullYear(), target.getUTCMonth(), target.getUTCDate() - isoDay + 1);
+  const weekEnd = weekStart + 6 * 86400000;
+  return candidates.some(timestamp => timestamp >= weekStart && timestamp <= weekEnd);
 }
-
 async function loadPublishedGiras() {
   if (!SUPABASE_URL || !SUPABASE_PUBLIC_KEY || !girasList) return;
   girasList.className = "empty-state";
