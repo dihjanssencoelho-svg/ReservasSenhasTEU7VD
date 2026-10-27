@@ -17,7 +17,7 @@ values ('dddddddd-dddd-4ddd-8ddd-ddddddddddd4','Admin de teste','admin',true);
 
 insert into public.giras(id,titulo,data_gira,chave,limite_vagas,ativa,status,tipo_gira)
 values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5','Gira administrativa de teste',
-        current_date + 40,'__teste_admin_rpc',2,true,'publicada','__teste_admin_tipo');
+        current_date + 40,'__teste_admin_rpc',1,true,'publicada','__teste_admin_tipo');
 
 do $admin_flow$
 declare
@@ -39,6 +39,34 @@ begin
   if v_result->>'success' <> 'true' or v_reserva is null then
     raise exception 'Falha: criação da reserva de teste';
   end if;
+
+  -- Excedente permitido somente pela RPC administrativa, com motivo e auditoria.
+  execute 'set local role service_role';
+  v_result := public.teu7vd_criar_reserva_admin(
+    v_actor,'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5',
+    'Pessoa Excedente Teste','1992-07-08','11999990009',
+    'pessoa-excedente@example.invalid','Não',false,null,null,null,null,
+    'Autorização administrativa de homologação'
+  );
+  execute 'reset role';
+  if v_result->>'success' <> 'true' then raise exception 'Falha: excedente administrativo não foi aceito'; end if;
+  if not exists(select 1 from public.reservas where id=(v_result->>'reservation_id')::uuid and origem='painel_admin_excedente') then
+    raise exception 'Falha: excedente não foi identificado como cadastro administrativo';
+  end if;
+  if not exists(select 1 from public.auditoria where acao='reserva_criada_excedente' and entidade_id=v_result->>'reservation_id'
+    and user_id=v_actor and detalhes->>'motivo'='Autorização administrativa de homologação') then
+    raise exception 'Falha: excedente não gerou auditoria com ator e motivo';
+  end if;
+
+  begin
+    perform public.teu7vd_criar_reserva_admin(
+      'ffffffff-ffff-4fff-8fff-fffffffffff6','eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5',
+      'Pessoa Sem Perfil','1992-07-09','11999990008',
+      'sem-perfil@example.invalid','Não',false,null,null,null,null,'Tentativa não autorizada'
+    );
+    raise exception 'Falha: excedente aceito sem perfil administrativo';
+  exception when sqlstate '42501' then null;
+  end;
 
   execute 'set local role service_role';
   if public.teu7vd_cancelar_reserva_v2(v_reserva,'teste de homologação',v_actor) is not true then
