@@ -47,6 +47,12 @@ jobs:
           grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' index.html
           grep -q 'if (!turnstileTokenForHomologation)' assets/app.js
 
+      - name: Verificar contrato de regras e índice ant duplicidade
+        run: |
+          grep -q 'reservas_identidade_gira_unique' supabase/migrations/20261027140000_teu7vd_enforce_duplicate_identity.sql
+          grep -q 'formulário dentro do painel administrativo' supabase/PLANO_REGRAS_HOMOLOGACAO.md
+          grep -q 'rollback' supabase/PLANO_REGRAS_HOMOLOGACAO.md
+
       - name: Validar sintaxe dos smoke tests HTTP
         run: bash -n supabase/tests/edge-input-smoke.sh supabase/tests/security-smoke.sh supabase/tests/reservation-concurrency-smoke.sh
 
