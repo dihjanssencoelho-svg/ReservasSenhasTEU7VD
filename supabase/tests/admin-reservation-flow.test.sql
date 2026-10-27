@@ -103,7 +103,7 @@ begin
     'giras',jsonb_build_array((select to_jsonb(g) from public.giras g where g.id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5')),
     'reservas',(select jsonb_agg(to_jsonb(r)) from public.reservas r where r.gira_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5'),
     'contadores_senha',(select coalesce(jsonb_agg(to_jsonb(c)),'[]'::jsonb) from public.contadores_senha c where c.tipo_gira='__teste_admin_tipo'),
-    'configuracoes_portal',(select jsonb_agg(jsonb_build_object('mensagem_publica',c.mensagem_publica,'mensagem_confirmacao',c.mensagem_confirmacao,'cor_primaria',c.cor_primaria,'cor_destaque',c.cor_destaque,'limite_alerta_vagas',c.limite_alerta_vagas,'updated_at',c.updated_at) from public.configuracoes_portal c where c.id=true)
+    'configuracoes_portal',(select jsonb_agg(jsonb_build_object('mensagem_publica',c.mensagem_publica,'mensagem_confirmacao',c.mensagem_confirmacao,'cor_primaria',c.cor_primaria,'cor_destaque',c.cor_destaque,'limite_alerta_vagas',c.limite_alerta_vagas,'updated_at',c.updated_at)) from public.configuracoes_portal c where c.id=true)
   ) into v_backup;
   v_restore := public.teu7vd_preparar_restauracao_backup(v_actor,v_backup);
   v_restore_id := (v_restore->>'job_id')::uuid;
