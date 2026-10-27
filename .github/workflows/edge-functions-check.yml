@@ -235,5 +235,15 @@ jobs:
           npm install --no-save playwright
           npx playwright install chromium
 
-      - name: Verificar portal publicado sem enviar reservas
+      - name: Verificar código local de homologação no navegador
         run: node supabase/tests/browser-smoke.mjs
+
+      - name: Confirmar formulário ativo na versão publicada do Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://dihjanssencoelho-svg.github.io/ReservasSenhasTEU7VD/"
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 5 "$url" -o /tmp/teu7vd-public.html
+          grep -q 'id="reservation-submit" type="submit">Solicitar reserva</button>' /tmp/teu7vd-public.html
+          grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' /tmp/teu7vd-public.html
+          echo "OK: o HTML publicado contém o formulário ativo e a verificação Turnstile. Nenhuma reserva foi enviada."
