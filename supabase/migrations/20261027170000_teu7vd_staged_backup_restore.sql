@@ -65,7 +65,7 @@ returns jsonb
 language plpgsql security definer set search_path=''
 as $$
 declare v_job public.backup_restore_jobs%rowtype; v_row jsonb; v_g public.giras%rowtype; v_r public.reservas%rowtype;
- v_count_g integer:=0; v_count_r integer:=0; v_count_c integer:=0; v_settings jsonb;
+ v_count_g integer:=0; v_count_r integer:=0; v_count_c integer:=0; v_settings jsonb; v_occupied bigint;
 begin
  if p_actor_id is null or not exists(select 1 from public.perfis_admin p where p.user_id=p_actor_id and p.ativo=true and p.papel='admin') then
   raise exception using errcode='42501',message='Apenas administrador ativo pode aplicar restauração.';
@@ -87,6 +87,13 @@ begin
  for v_row in select value from jsonb_array_elements(v_job.payload->'reservas') loop
   select * into v_r from jsonb_populate_record(null::public.reservas,v_row);
   if not exists(select 1 from public.giras where id=v_r.gira_id) then raise exception using errcode='23503',message='Reserva do backup aponta para gira ausente.'; end if;
+  select * into v_g from public.giras where id=v_r.gira_id for update;
+  if v_r.status='ativa' and not exists(select 1 from public.reservas old where old.id=v_r.id and old.status='ativa') then
+   select count(*) into v_occupied from public.reservas old where old.gira_id=v_r.gira_id and old.status='ativa';
+   if v_g.limite_vagas is null or v_occupied>=v_g.limite_vagas then
+    raise exception using errcode='P0001',message='Restauração excederia a capacidade de uma gira. Nenhuma alteração parcial foi confirmada.';
+   end if;
+  end if;
   insert into public.reservas(id,gira_id,senha_original,tipo_gira,senha_numero,nome_completo,data_nascimento,telefone,email,primeira_vez,retorno,medium_nome,preferencial,tipo_preferencial,descricao_preferencial,status,origem,legado_importado,linha_origem,created_at,updated_at,cancelada_em,cancelada_por,reaberta_em,reaberta_por,excluida_em,excluida_por,exclusao_motivo)
   values(v_r.id,v_r.gira_id,v_r.senha_original,v_r.tipo_gira,v_r.senha_numero,v_r.nome_completo,v_r.data_nascimento,v_r.telefone,v_r.email,v_r.primeira_vez,v_r.retorno,v_r.medium_nome,v_r.preferencial,v_r.tipo_preferencial,v_r.descricao_preferencial,v_r.status,v_r.origem,v_r.legado_importado,v_r.linha_origem,coalesce(v_r.created_at,now()),coalesce(v_r.updated_at,now()),v_r.cancelada_em,v_r.cancelada_por,v_r.reaberta_em,v_r.reaberta_por,v_r.excluida_em,v_r.excluida_por,v_r.exclusao_motivo)
   on conflict(id) do update set gira_id=excluded.gira_id,senha_original=excluded.senha_original,tipo_gira=excluded.tipo_gira,senha_numero=excluded.senha_numero,nome_completo=excluded.nome_completo,data_nascimento=excluded.data_nascimento,telefone=excluded.telefone,email=excluded.email,primeira_vez=excluded.primeira_vez,retorno=excluded.retorno,medium_nome=excluded.medium_nome,preferencial=excluded.preferencial,tipo_preferencial=excluded.tipo_preferencial,descricao_preferencial=excluded.descricao_preferencial,status=excluded.status,origem=excluded.origem,legado_importado=excluded.legado_importado,linha_origem=excluded.linha_origem,updated_at=now(),cancelada_em=excluded.cancelada_em,cancelada_por=excluded.cancelada_por,reaberta_em=excluded.reaberta_em,reaberta_por=excluded.reaberta_por,excluida_em=excluded.excluida_em,excluida_por=excluded.excluida_por,exclusao_motivo=excluded.exclusao_motivo;
@@ -106,7 +113,19 @@ begin
     mensagem_confirmacao=coalesce(v_settings->>'mensagem_confirmacao',mensagem_confirmacao),
     cor_primaria=case when coalesce(v_settings->>'cor_primaria','') ~ '^#[0-9A-Fa-f]{6}$' then v_settings->>'cor_primaria' else cor_primaria end,
     cor_destaque=case when coalesce(v_settings->>'cor_destaque','') ~ '^#[0-9A-Fa-f]{6}$' then v_settings->>'cor_destaque' else cor_destaque end,
-    limite_alerta_vagas=case when coalesce(v_settings->>'limite_alerta_vagas','') ~ '^\d+$' and (v_settings->>'limite_alerta_vagas')::integer between 0 and 10000 then (v_settings->>'limite_alerta_vagas')::integer else limite_alerta_vagas end,
+    limite_alerta_vagas=case when coalesce(v_settings->>'limite_alerta_vagas','') ~ '^[0-9]+ and (v_settings->>'limite_alerta_vagas')::integer between 0 and 10000 then (v_settings->>'limite_alerta_vagas')::integer else limite_alerta_vagas end,
+    atualizado_por=p_actor_id,updated_at=now() where id=true;
+ end if;
+ update public.backup_restore_jobs set status='aplicado',aplicado_por=p_actor_id,motivo_aplicacao=trim(p_motivo),applied_at=now() where id=p_job_id;
+ insert into public.auditoria(user_id,acao,entidade,entidade_id,detalhes)
+ values(p_actor_id,'restauracao_backup_aplicada','backup_restore_job',p_job_id::text,
+  jsonb_build_object('giras',v_count_g,'reservas',v_count_r,'contadores_senha',v_count_c,'motivo',trim(p_motivo),'modo','merge_sem_exclusao'));
+ return jsonb_build_object('success',true,'giras',v_count_g,'reservas',v_count_r,'contadores_senha',v_count_c);
+end;
+$$;
+revoke all on function public.teu7vd_aplicar_restauracao_backup(uuid,uuid,text) from public,anon,authenticated;
+grant execute on function public.teu7vd_aplicar_restauracao_backup(uuid,uuid,text) to service_role;
+ and (v_settings->>'limite_alerta_vagas')::integer between 0 and 10000 then (v_settings->>'limite_alerta_vagas')::integer else limite_alerta_vagas end,
     atualizado_por=p_actor_id,updated_at=now() where id=true;
  end if;
  update public.backup_restore_jobs set status='aplicado',aplicado_por=p_actor_id,motivo_aplicacao=trim(p_motivo),applied_at=now() where id=p_job_id;
