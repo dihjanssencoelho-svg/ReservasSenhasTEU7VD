@@ -36,9 +36,10 @@ jobs:
       - name: Garantir que o envio público continua bloqueado
         shell: bash
         run: |
-          grep -q '<button type="button" disabled>Reservas ainda não liberadas</button>' index.html
-          ! grep -Eq 'functions/v1/criar-reserva|fetch\([^)]*criar-reserva' assets/app.js
+          grep -q 'id="reservation-submit" type="submit">Solicitar reserva</button>' index.html
+          grep -q 'functions/v1/criar-reserva' assets/app.js
           grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' index.html
+          grep -q 'if (!turnstileTokenForHomologation)' assets/app.js
 
       - name: Validar sintaxe dos smoke tests HTTP
         run: bash -n supabase/tests/edge-input-smoke.sh supabase/tests/security-smoke.sh supabase/tests/reservation-concurrency-smoke.sh
@@ -67,7 +68,23 @@ jobs:
 
       - name: Iniciar Supabase local e aplicar migrações
         run: |
-          supabase start
+          # Retentar falhas transitórias de pull do registry; cada tentativa parte de estado limpo.
+          started=false
+          for attempt in 1 2 3; do
+            echo "Inicialização local Supabase — tentativa $attempt/3"
+            if supabase start; then
+              started=true
+              break
+            fi
+            if [ "$attempt" -lt 3 ]; then
+              supabase stop --no-backup || true
+              sleep $((attempt * 10))
+            fi
+          done
+          if [ "$started" != "true" ]; then
+            echo "Supabase local não iniciou após 3 tentativas; verificar disponibilidade do registry Docker."
+            exit 1
+          fi
           supabase db reset
 
       - name: Testar criação, duplicidade, capacidade, numeração, auditoria e rollback atômico
