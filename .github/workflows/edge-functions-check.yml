@@ -76,6 +76,55 @@ jobs:
         run: |
           psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/reservation-flow.test.sql
 
+      - name: Auditar RLS e privilégios mínimos no banco local
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          do $security$
+          declare t text; v_rls boolean;
+          begin
+            foreach t in array array['giras','reservas','perfis_admin','auditoria','contadores_senha'] loop
+              select c.relrowsecurity into v_rls
+              from pg_class c join pg_namespace n on n.oid=c.relnamespace
+              where n.nspname='public' and c.relname=t;
+              if coalesce(v_rls,false) is not true then
+                raise exception 'RLS desabilitado ou tabela ausente: public.%',t;
+              end if;
+            end loop;
+            if has_table_privilege('anon','public.reservas','SELECT')
+              or has_table_privilege('anon','public.reservas','INSERT')
+              or has_table_privilege('authenticated','public.reservas','SELECT')
+              or has_table_privilege('authenticated','public.reservas','INSERT')
+              or has_table_privilege('anon','public.auditoria','SELECT')
+              or has_table_privilege('authenticated','public.auditoria','SELECT')
+              or has_table_privilege('anon','public.contadores_senha','SELECT')
+              or has_table_privilege('authenticated','public.contadores_senha','SELECT') then
+              raise exception 'Privilégio direto indevido em reservas, auditoria ou contadores';
+            end if;
+            if has_table_privilege('anon','public.perfis_admin','SELECT') then
+              raise exception 'Papel anon pode consultar perfis_admin';
+            end if;
+            if has_table_privilege('anon','public.giras','INSERT')
+              or has_table_privilege('anon','public.giras','UPDATE')
+              or has_table_privilege('anon','public.giras','DELETE')
+              or has_table_privilege('authenticated','public.giras','INSERT')
+              or has_table_privilege('authenticated','public.giras','UPDATE')
+              or has_table_privilege('authenticated','public.giras','DELETE') then
+              raise exception 'Mutação direta de giras concedida a anon/authenticated';
+            end if;
+            if has_function_privilege('anon','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text)','EXECUTE')
+              or has_function_privilege('authenticated','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text)','EXECUTE') then
+              raise exception 'RPC de criação acessível diretamente a anon/authenticated';
+            end if;
+            if not has_function_privilege('service_role','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text)','EXECUTE') then
+              raise exception 'service_role sem EXECUTE na RPC de criação';
+            end if;
+            raise notice 'PASSOU: RLS ativo e privilégios diretos mínimos verificados';
+          end;
+          $security$;
+          SQL
+
       - name: Testar concorrência de numeração e capacidade
         env:
           LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
