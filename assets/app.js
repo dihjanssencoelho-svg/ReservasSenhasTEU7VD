@@ -10,6 +10,7 @@ const configMessage = document.getElementById("config-message");
 const girasList = document.getElementById("giras-list");
 const reservationForm = document.getElementById("reservation-form");
 const turnstileStatus = document.getElementById("turnstile-status");
+let publicPortalSettings = { mensagem_confirmacao: "Solicitação recebida com sucesso.", limite_alerta_vagas: 5 };
 
 // Token do Turnstile mantido somente em memória e enviado apenas ao endpoint de validação.
 let turnstileTokenForHomologation = null;
@@ -82,6 +83,21 @@ async function loadPublishedGiras() {
     const giras = await result.json();
     let vacancyByGira = new Map();
     try {
+      const settingsResponse = await fetch(SUPABASE_URL + "/rest/v1/rpc/teu7vd_configuracoes_publicas", {
+        method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, "Content-Type": "application/json", Accept: "application/json" },
+        body: "{}", cache: "no-store"
+      });
+      if (settingsResponse.ok) {
+        const settingsRows = await settingsResponse.json();
+        if (Array.isArray(settingsRows) && settingsRows[0]) {
+          publicPortalSettings = settingsRows[0];
+          document.documentElement.style.setProperty("--bg", publicPortalSettings.cor_primaria || "#17131e");
+          document.documentElement.style.setProperty("--gold", publicPortalSettings.cor_destaque || "#c9a86a");
+          if (configMessage && publicPortalSettings.mensagem_publica) configMessage.textContent = publicPortalSettings.mensagem_publica;
+        }
+      }
+    } catch { /* usa configurações padrão em indisponibilidade */ }
+    try {
       const metrics = await fetch(SUPABASE_URL + "/rest/v1/rpc/teu7vd_resumo_vagas_publico", {
         method: "POST",
         headers: { apikey: SUPABASE_PUBLIC_KEY, "Content-Type": "application/json", Accept: "application/json" },
@@ -116,10 +132,10 @@ async function loadPublishedGiras() {
       const metric = vacancyByGira.get(gira.id);
       const vacancyText = metric
         ? (Number(metric.vagas_restantes) <= 0 ? "Vagas esgotadas" :
-          Number(metric.vagas_restantes) <= 5 ? "Poucas vagas: " + metric.vagas_restantes + " restante(s)" :
+          metric.poucas_vagas ? "Poucas vagas: " + metric.vagas_restantes + " restante(s)" :
           metric.vagas_restantes + " vaga(s) restante(s)") + " · " + metric.ocupacao_percentual + "% ocupadas"
         : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
-      const vacancyClass = metric && (Number(metric.vagas_restantes) <= 5) ? "gira-vacancies low-vacancy" : "gira-vacancies";
+      const vacancyClass = metric && metric.poucas_vagas ? "gira-vacancies low-vacancy" : "gira-vacancies";
       return '<article class="gira-card"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
@@ -211,7 +227,7 @@ reservationForm?.addEventListener("submit", async (event) => {
     if (mediumNameWrap) mediumNameWrap.hidden = true;
     if (preferentialType) preferentialType.required = false;
     if (preferentialDescription) preferentialDescription.required = false;
-    if (configMessage) configMessage.textContent = result.message || "Solicitação recebida.";
+    if (configMessage) configMessage.textContent = publicPortalSettings.mensagem_confirmacao || result.message || "Solicitação recebida.";
     if (turnstileStatus) turnstileStatus.textContent = "Verificação utilizada. Faça uma nova verificação para outra solicitação.";
   } catch (error) {
     turnstileTokenForHomologation = null;
