@@ -24,6 +24,9 @@ declare
   v_result jsonb;
   v_import jsonb;
   v_import_id uuid;
+  v_restore jsonb;
+  v_restore_id uuid;
+  v_backup jsonb;
   v_reserva uuid;
   v_count integer;
   v_status text;
@@ -92,6 +95,24 @@ begin
   execute 'reset role';
   if not exists(select 1 from public.auditoria where acao='configuracoes_portal_atualizadas' and user_id=v_actor) then
     raise exception 'Falha: configuração não gerou auditoria';
+  end if;
+
+  -- Prévia e merge de backup com dados artificiais existentes; não apaga ausentes.
+  select jsonb_build_object(
+    'schema','teu7vd-backup-v1',
+    'giras',jsonb_build_array((select to_jsonb(g) from public.giras g where g.id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5')),
+    'reservas',(select jsonb_agg(to_jsonb(r)) from public.reservas r where r.gira_id='eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee5'),
+    'contadores_senha',(select coalesce(jsonb_agg(to_jsonb(c)),'[]'::jsonb) from public.contadores_senha c where c.tipo_gira='__teste_admin_tipo'),
+    'configuracoes_portal',(select jsonb_agg(jsonb_build_object('mensagem_publica',c.mensagem_publica,'mensagem_confirmacao',c.mensagem_confirmacao,'cor_primaria',c.cor_primaria,'cor_destaque',c.cor_destaque,'limite_alerta_vagas',c.limite_alerta_vagas,'updated_at',c.updated_at) from public.configuracoes_portal c where c.id=true)
+  ) into v_backup;
+  v_restore := public.teu7vd_preparar_restauracao_backup(v_actor,v_backup);
+  v_restore_id := (v_restore->>'job_id')::uuid;
+  if v_restore->>'success'<>'true' then raise exception 'Falha: prévia de restauração não validada'; end if;
+  execute 'set local role service_role';
+  v_restore := public.teu7vd_aplicar_restauracao_backup(v_actor,v_restore_id,'Teste de restauração merge em homologação');
+  execute 'reset role';
+  if v_restore->>'success'<>'true' or not exists(select 1 from public.auditoria where acao='restauracao_backup_aplicada' and entidade_id=v_restore_id::text and user_id=v_actor) then
+    raise exception 'Falha: restauração não aplicada/auditada';
   end if;
 
   begin
