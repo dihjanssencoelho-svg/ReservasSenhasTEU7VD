@@ -398,10 +398,11 @@ function showTeamSession(role) {
       const overrideGira = overCapacityForm.querySelector("#override-gira");
       if (overrideGira && overrideGira.options.length <= 1) {
         overrideGira.replaceChildren(new Option("Selecione uma gira", ""));
-        for (const gira of currentGiras) {
+        for (const gira of currentGiras.filter(g => g.ativa === true && g.status === "publicada" && Number.isInteger(g.limite_vagas))) {
           const option = new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id);
           overrideGira.add(option);
         }
+        if (overrideGira.options.length === 1) overrideGira.options[0].textContent = "Nenhuma gira publicada elegível";
       }
       const giraSelect = filters.elements.namedItem("gira_id");
       const selected = String(formData.get("gira_id") || "");
