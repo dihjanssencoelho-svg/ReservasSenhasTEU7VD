@@ -3,40 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#17131e">
+  <meta name="theme-color" content="#8c2787">
   <meta name="description" content="Portal independente de reservas de senhas do Templo Escola de Umbanda 7 Vibrações Divinas.">
   <title>Reservas de Senhas | TEU7VD</title>
   <link rel="stylesheet" href="./assets/styles.css">
 </head>
 <body>
   <header class="site-header">
-    <div class="brand-mark" aria-hidden="true"><span>7</span></div>
-    <div class="brand-text">
-      <p class="eyebrow">Templo Escola de Umbanda</p>
-      <h1>7 Vibrações Divinas</h1>
-      <p class="subtitle">Portal independente de reservas de senhas</p>
-    </div>
+    <a class="brand-lockup" href="#reservation-title" aria-label="Reserva de vagas TEU7VD">
+      <span class="brand-emoji" aria-hidden="true">🙏</span>
+      <span class="brand-name">Reserva de Vagas</span>
+    </a>
+    <nav class="site-nav" aria-label="Navegação principal">
+      <a class="nav-link nav-link-active" href="#reservation-title">Formulário</a>
+      <button id="team-access-toggle" class="nav-link nav-admin" type="button" aria-expanded="false" aria-controls="team-access">Painel Admin</button>
+    </nav>
   </header>
 
   <main class="container">
-    <section class="intro panel">
-      <p class="eyebrow">Seja bem-vindo(a)</p>
-      <h2>Reserve sua senha</h2>
-      <p>Este é o novo portal de reservas do TEU7VD, separado do site institucional.</p>
-      <div class="status-note" role="status" aria-live="polite">
-        <span class="status-icon" aria-hidden="true">i</span>
-        <div>
-          <strong>Agenda conectada · reservas em preparação</strong>
-          <p>As datas publicadas serão exibidas aqui. A solicitação de reservas será habilitada após a homologação do backend seguro.</p>
-        </div>
-      </div>
+    <section class="intro hero-panel">
+      <img class="portal-logo" src="https://dihjanssencoelho-svg.github.io/siteTEU7VD/assets/logo-teu7vd.jpeg" alt="Logo do Templo Escola de Umbanda 7 Vibrações Divinas" onerror="this.hidden=true">
+      <p class="eyebrow">Templo Escola de Umbanda 7 Vibrações Divinas</p>
+      <h2>Reserva de Vagas</h2>
+      <p class="hero-help">Os campos marcados com <strong>*</strong> são obrigatórios.</p>
     </section>
 
     <section class="panel" aria-labelledby="giras-title">
       <div class="section-heading">
         <div>
-          <p class="eyebrow">Agenda</p>
-          <h2 id="giras-title">Giras disponíveis</h2>
+          <p class="eyebrow">Agenda de atendimento</p>
+          <h2 id="giras-title">♧ Selecione a data <span class="required-mark">*</span></h2>
         </div>
         <span class="section-symbol" aria-hidden="true">✦</span>
       </div>
@@ -48,25 +44,25 @@
     </section>
 
     <section class="panel form-panel" aria-labelledby="reservation-title">
-      <p class="eyebrow">Atendimento</p>
-      <h2 id="reservation-title">Solicitar reserva</h2>
-      <p class="muted">Preencha os dados necessários para solicitar sua reserva. O envio depende da verificação de segurança e da disponibilidade de vagas.</p>
+      <p class="eyebrow">Cadastro de consulente</p>
+      <h2 id="reservation-title">♙ Dados pessoais</h2>
+      <p class="muted">Selecione uma data disponível e preencha seus dados para solicitar a senha. A confirmação depende da disponibilidade de vagas e da validação de segurança.</p>
       <form id="reservation-form" autocomplete="off">
-        <label for="full-name">Nome completo</label>
+        <label for="full-name">Nome completo <span class="required-mark">*</span></label>
         <input id="full-name" name="nome_completo" required maxlength="180" autocomplete="name" placeholder="Seu nome completo">
-        <label for="event">Gira</label>
+        <label for="event">Data selecionada <span class="required-mark">*</span></label>
         <select id="event" name="gira_id" required>
           <option value="">Carregando giras disponíveis…</option>
         </select>
-        <label for="dob">Data de nascimento</label>
+        <label for="dob">Data de nascimento <span class="required-mark">*</span></label>
         <input id="dob" name="data_nascimento" type="date" required autocomplete="bday">
-        <label for="phone">Telefone com DDD</label>
+        <label for="phone">Telefone com DDD <span class="required-mark">*</span></label>
         <input id="phone" name="telefone" type="tel" required maxlength="32" autocomplete="tel" placeholder="(11) 99999-9999">
-        <label for="email">E-mail</label>
+        <label for="email">E-mail <span class="required-mark">*</span></label>
         <input id="email" name="email" type="email" required maxlength="254" autocomplete="email" placeholder="voce@exemplo.com">
-        <label for="first-time">É sua primeira vez no templo?</label>
+        <label for="first-time">É sua primeira vez? <span class="required-mark">*</span></label>
         <select id="first-time" name="primeira_vez" required><option value="">Selecione</option><option value="Sim">Sim</option><option value="Não">Não</option></select>
-        <label for="preferential">Necessita de atendimento preferencial?</label>
+        <label for="preferential">Necessita de atendimento preferencial? <span class="required-mark">*</span></label>
         <select id="preferential" name="preferencial" required><option value="">Selecione</option><option value="false">Não</option><option value="true">Sim</option></select>
         <div id="preferential-details" hidden>
           <label for="preferential-type">Tipo de atendimento preferencial</label>
@@ -93,7 +89,6 @@
   </main>
 
   <section class="container team-access-wrap" aria-labelledby="team-access-title">
-    <button id="team-access-toggle" class="secondary-button" type="button" aria-expanded="false" aria-controls="team-access">Acesso da equipe</button>
     <section id="team-access" class="panel team-access" hidden>
       <p class="eyebrow">Área restrita</p>
       <h2 id="team-access-title">Acesso da equipe TEU7VD</h2>
