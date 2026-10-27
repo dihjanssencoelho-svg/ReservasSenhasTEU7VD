@@ -16,7 +16,7 @@ permissions:
 # Evita duas inicializações Supabase simultâneas para o mesmo commit/branch,
 # reduzindo pulls duplicados e limites transitórios do registry de imagens.
 concurrency:
-  group: teu7vd-homologacao-${{ github.workflow }}-${{ github.ref }}
+  group: teu7vd-homologacao-${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -74,21 +74,23 @@ jobs:
 
       - name: Iniciar Supabase local e aplicar migrações
         run: |
-          # Retentar falhas transitórias de pull do registry; cada tentativa parte de estado limpo.
+          # Serializa execuções da mesma branch e usa backoff maior para limites transitórios do GHCR.
           started=false
-          for attempt in 1 2 3; do
-            echo "Inicialização local Supabase — tentativa $attempt/3"
+          for attempt in 1 2 3 4 5; do
+            echo "Inicialização local Supabase — tentativa $attempt/5"
             if supabase start; then
               started=true
               break
             fi
-            if [ "$attempt" -lt 3 ]; then
+            if [ "$attempt" -lt 5 ]; then
               supabase stop --no-backup || true
-              sleep $((attempt * 10))
+              delay=$((attempt * 20))
+              echo "Falha no pull de imagem; nova tentativa em ${delay}s."
+              sleep "$delay"
             fi
           done
           if [ "$started" != "true" ]; then
-            echo "Supabase local não iniciou após 3 tentativas; verificar disponibilidade do registry Docker."
+            echo "Supabase local não iniciou após 5 tentativas; verificar disponibilidade do registry Docker."
             exit 1
           fi
           supabase db reset
