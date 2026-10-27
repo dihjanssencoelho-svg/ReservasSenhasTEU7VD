@@ -22,7 +22,7 @@ cleanup() {
 delete from public.auditoria where entidade_id in (
   select id::text from public.reservas where gira_id in (:'gira_a',:'gira_b',:'gira_c')
 );
-delete from public.reservas where gira_id in (:'gira_a',:'gira_b');
+delete from public.reservas where gira_id in (:'gira_a',:'gira_b',:'gira_c');
 delete from public.contadores_senha where tipo_gira in (:'tipo_cap',:'tipo_num');
 delete from public.giras where id in (:'gira_a',:'gira_b',:'gira_c');
 SQL
@@ -34,7 +34,7 @@ psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 -q \
   -v gira_a="$GIRA_A" -v gira_b="$GIRA_B" -v gira_c="$GIRA_C" \
   -v tipo_cap="$TIPO_CAP" -v tipo_num="$TIPO_NUM" <<'SQL'
 delete from public.auditoria where entidade_id in (
-  select id::text from public.reservas where gira_id in (:'gira_a',:'gira_b')
+  select id::text from public.reservas where gira_id in (:'gira_a',:'gira_b',:'gira_c')
 );
 delete from public.reservas where gira_id in (:'gira_a',:'gira_b');
 delete from public.contadores_senha where tipo_gira in (:'tipo_cap',:'tipo_num');
@@ -86,7 +86,7 @@ fi
 # Ambas devem ser aceitas e receber números diferentes, consecutivos.
 worker "$GIRA_B" 3 "$TIPO_NUM" num &
 pid3=$!
-# A segunda chamada usa a mesma gira B, cuja capacidade é 2.
+# A segunda chamada usa outra gira, mas compartilha o mesmo contador de tipo.
 worker "$GIRA_C" 4 "$TIPO_NUM" num &
 pid4=$!
 wait "$pid3"; wait "$pid4"
