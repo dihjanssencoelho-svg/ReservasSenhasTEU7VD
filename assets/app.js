@@ -306,6 +306,32 @@ function showTeamSession(role) {
   status.setAttribute("aria-live", "polite");
   const results = document.createElement("div");
   results.className = "admin-results";
+  const exportBar = document.createElement("div");
+  exportBar.className = "admin-filter-actions";
+  const exportCsv = document.createElement("button");
+  exportCsv.type = "button";
+  exportCsv.className = "secondary-button";
+  exportCsv.textContent = "Exportar página para Excel (CSV)";
+  const printList = document.createElement("button");
+  printList.type = "button";
+  printList.className = "secondary-button";
+  printList.textContent = "Imprimir lista do dia";
+  exportBar.append(exportCsv, printList);
+  let exportRows = [];
+  exportCsv.addEventListener("click", () => {
+    if (!exportRows.length) { status.textContent = "Não há registros nesta página para exportar."; return; }
+    const columns = role === "admin"
+      ? [["Senha", x => x.senha_original || x.senha_numero],["Nome", x => x.nome_completo],["Gira", x => x.gira?.titulo],["Data da gira", x => x.gira?.data_gira],["Telefone", x => x.telefone],["E-mail", x => x.email],["Nascimento", x => x.data_nascimento],["Aniversário na semana", x => birthdayWithinGiraWeek(x.data_nascimento, x.gira?.data_gira) ? "Sim" : "Não"],["Status", x => x.status],["Preferencial", x => x.preferencial ? (x.tipo_preferencial || "Sim") : "Não"]]
+      : [["Senha", x => x.senha_original || x.senha_numero],["Nome", x => x.nome_completo],["Gira", x => x.gira?.titulo],["Data da gira", x => x.gira?.data_gira],["Status", x => x.status],["Preferencial", x => x.preferencial ? (x.tipo_preferencial || "Sim") : "Não"]];
+    const quote = value => '"' + String(value ?? "").replace(/"/g, '""') + '"';
+    const csv = "\\uFEFF" + [columns.map(c => quote(c[0])).join(";"), ...exportRows.map(row => columns.map(col => quote(col[1](row))).join(";"))].join("\\r\\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a"); a.href = url; a.download = "reservas-pagina-" + page + ".csv"; a.click(); URL.revokeObjectURL(url);
+  });
+  printList.addEventListener("click", () => {
+    const prior = document.title; document.title = "Lista de reservas TEU7VD - página " + page;
+    window.print(); document.title = prior;
+  });
   const pagination = document.createElement("div");
   pagination.className = "admin-pagination";
   let page = 1;
@@ -356,6 +382,7 @@ function showTeamSession(role) {
         for (const gira of currentGiras) giraSelect.add(new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id));
       }
       giraSelect.value = selected;
+      exportRows = Array.isArray(result.data) ? result.data : [];
       status.textContent = result.total + " reserva(s) encontrada(s) · página " + result.page + " · papel: " + TEAM_ROLE_LABELS[result.role];
       if (!result.data.length) {
         results.innerHTML = '<div class="empty-state"><h3>Nenhuma reserva encontrada</h3><p>Altere os filtros e tente novamente.</p></div>';
@@ -433,8 +460,8 @@ function showTeamSession(role) {
     clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
     if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, filters, status, results, pagination, logout);
-  else teamSession.append(heading, detail, filters, status, results, pagination, logout);
+  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, filters, status, exportBar, results, pagination, logout);
+  else teamSession.append(heading, detail, filters, status, exportBar, results, pagination, logout);
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
   fetchReservations();
