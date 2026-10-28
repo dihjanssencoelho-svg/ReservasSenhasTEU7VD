@@ -65,6 +65,9 @@ jobs:
       - name: Verificar admin-reservas
         run: deno check supabase/functions/admin-reservas/index.ts
 
+      - name: Verificar admin-criar-reserva
+        run: deno check supabase/functions/admin-criar-reserva/index.ts
+
       - name: Verificar admin-criar-excedente
         run: deno check supabase/functions/admin-criar-excedente/index.ts
 
