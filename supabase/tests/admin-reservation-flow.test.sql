@@ -29,10 +29,28 @@ declare
   v_backup jsonb;
   v_reserva uuid;
   v_excedente uuid;
+  v_new_gira uuid;
   v_count integer;
   v_status text;
   v_actor uuid := 'dddddddd-dddd-4ddd-8ddd-ddddddddddd4';
 begin
+  -- Cadastro administrativo de gira: capacidade, publicação e auditoria.
+  execute 'set local role service_role';
+  v_result := public.teu7vd_criar_gira('Gira criada pelo painel',current_date + 55,
+    '__teste_nova_gira',7,v_actor);
+  execute 'reset role';
+  v_new_gira := (v_result->>'gira_id')::uuid;
+  if v_result->>'success'<>'true' or v_new_gira is null then
+    raise exception 'Falha: cadastro administrativo da gira não confirmou sucesso';
+  end if;
+  if not exists(select 1 from public.giras where id=v_new_gira
+      and limite_vagas=7 and ativa=true and status='publicada' and tipo_gira='__teste_nova_gira') then
+    raise exception 'Falha: gira não foi criada com capacidade e estado publicados';
+  end if;
+  if not exists(select 1 from public.auditoria where acao='gira_criada'
+      and entidade_id=v_new_gira::text and user_id=v_actor and detalhes->>'limite_vagas'='7') then
+    raise exception 'Falha: cadastro da gira não foi auditado';
+  end if;
   -- RPC de criação só pode ser chamada pelo papel confiável no teste.
   execute 'set local role service_role';
   v_result := public.teu7vd_criar_reserva(
