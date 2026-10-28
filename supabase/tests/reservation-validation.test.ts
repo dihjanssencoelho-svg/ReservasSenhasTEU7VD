@@ -32,12 +32,12 @@ Deno.test("rejeita telefone com menos de 10 dígitos", () => {
   assertEquals(validateReservationInput({ ...validPayload(), telefone: "123-456" }), "Confira os dados informados.");
 });
 
-Deno.test("rejeita retorno inválido", () => {
-  assertEquals(validateReservationInput({ ...validPayload(), retorno: "Talvez" }), "Confira os dados informados.");
+Deno.test("rejeita campo retorno no formulário público", () => {
+  assertEquals(validateReservationInput({ ...validPayload(), retorno: "Talvez" }), "Campos não reconhecidos.");
 });
 
-Deno.test("rejeita nome de médium quando retorno não é Sim", () => {
-  assertEquals(validateReservationInput({ ...validPayload(), retorno: "Não", medium_nome: "Médium de Teste" }), "Confira os dados informados.");
+Deno.test("rejeita nome de médium no formulário público", () => {
+  assertEquals(validateReservationInput({ ...validPayload(), medium_nome: "Médium de Teste" }), "Campos não reconhecidos.");
 });
 
 Deno.test("exige tipo quando atendimento preferencial é solicitado", () => {
@@ -48,14 +48,8 @@ Deno.test("exige descrição para tipo Outro", () => {
   assertEquals(validateReservationInput({ ...validPayload(), preferencial: true, tipo_preferencial: "Outro" }), "Descreva a necessidade de atendimento preferencial (até 300 caracteres).");
 });
 
-Deno.test("aceita retorno Sim com nome de médium e tipo preferencial conhecido", () => {
-  assertEquals(validateReservationInput({
-    ...validPayload(),
-    retorno: "Sim",
-    medium_nome: "Médium de Teste",
-    preferencial: true,
-    tipo_preferencial: "PCD",
-  }), null);
+Deno.test("aceita preferência válida sem campos administrativos de retorno", () => {
+  assertEquals(validateReservationInput({ ...validPayload(), preferencial: true, tipo_preferencial: "PCD" }), null);
 });
 
 Deno.test("rejeita data de nascimento futura", () => {
@@ -134,4 +128,14 @@ Deno.test("rejeita descrição de tipo Outro acima de 300 caracteres", () => {
     tipo_preferencial: "Outro",
     descricao_preferencial: "x".repeat(301),
   }), "Confira os dados informados.");
+});
+
+Deno.test("aceita e-mail ausente", () => {
+  const payload = validPayload();
+  delete (payload as Partial<typeof payload>).email;
+  assertEquals(validateReservationInput(payload), null);
+});
+
+Deno.test("aceita e-mail vazio", () => {
+  assertEquals(validateReservationInput({ ...validPayload(), email: "" }), null);
 });
