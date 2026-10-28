@@ -339,6 +339,18 @@ function showTeamSession(role) {
   overridePreferentialType?.addEventListener("change", () => {
     overridePreferentialDescription.required = overridePreferential.value === "true" && overridePreferentialType.value === "Outro";
   });
+  const createGiraForm = document.createElement("form");
+  createGiraForm.className = "admin-filters";
+  createGiraForm.hidden = role !== "admin";
+  createGiraForm.innerHTML = `
+    <h4>Cadastrar nova gira</h4>
+    <p class="small muted">Informe a quantidade total de senhas. A gira será publicada e ficará disponível para reservas após o cadastro.</p>
+    <label for="new-gira-title">Nome da gira</label><input id="new-gira-title" name="titulo" maxlength="120" required>
+    <label for="new-gira-date">Data</label><input id="new-gira-date" name="data_gira" type="date" required>
+    <label for="new-gira-type">Tipo da gira (sequência das senhas)</label><input id="new-gira-type" name="tipo_gira" maxlength="80" required>
+    <label for="new-gira-capacity">Quantidade de senhas</label><input id="new-gira-capacity" name="limite_vagas" type="number" min="1" max="10000" step="1" required>
+    <button type="submit">Cadastrar gira</button>
+    <p id="new-gira-status" class="small muted" role="status" aria-live="polite"></p>`;
   const settingsForm = document.createElement("form");
   settingsForm.className = "admin-filters";
   settingsForm.hidden = role !== "admin";
@@ -657,6 +669,34 @@ function showTeamSession(role) {
       settingsForm.querySelector("#portal-settings-status").textContent = "Não foi possível carregar as configurações atuais.";
     }
   };
+  createGiraForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    if (role !== "admin" || !createGiraForm.reportValidity()) return;
+    const token = getToken();
+    const out = createGiraForm.querySelector("#new-gira-status");
+    if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
+    const data = Object.fromEntries(new FormData(createGiraForm).entries());
+    data.limite_vagas = Number(data.limite_vagas);
+    const submit = createGiraForm.querySelector('button[type="submit"]');
+    submit.disabled = true;
+    out.textContent = "Validando permissões e cadastrando gira…";
+    try {
+      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-giras", {
+        method: "POST",
+        headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        body: JSON.stringify(data), cache: "no-store"
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível cadastrar a gira.");
+      createGiraForm.reset();
+      out.textContent = result.message || "Gira cadastrada e publicada.";
+      page = 1;
+      await loadPublishedGiras();
+      await fetchReservations();
+    } catch (error) {
+      out.textContent = error instanceof Error ? error.message : "Não foi possível cadastrar a gira.";
+    } finally { submit.disabled = false; }
+  });
   settingsForm.addEventListener("submit", async event => {
     event.preventDefault();
     if (role !== "admin" || !settingsForm.reportValidity()) return;
@@ -719,7 +759,7 @@ function showTeamSession(role) {
     clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
     if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  if (role === "admin") teamSession.append(heading, detail, overCapacityForm, settingsForm, importForm, restoreForm, filters, status, exportBar, results, pagination, logout);
+  if (role === "admin") teamSession.append(heading, detail, createGiraForm, overCapacityForm, settingsForm, importForm, restoreForm, filters, status, exportBar, results, pagination, logout);
   else teamSession.append(heading, detail, filters, status, exportBar, results, pagination, logout);
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
