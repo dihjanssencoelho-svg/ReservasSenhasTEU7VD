@@ -195,9 +195,6 @@ const preferentialSelect = document.getElementById("preferential");
 const preferentialDetails = document.getElementById("preferential-details");
 const preferentialType = document.getElementById("preferential-type");
 const preferentialDescription = document.getElementById("preferential-description");
-const returningSelect = document.getElementById("returning");
-const mediumNameWrap = document.getElementById("medium-name-wrap");
-const mediumNameInput = document.getElementById("medium-name");
 
 preferentialSelect?.addEventListener("change", () => {
   const needed = preferentialSelect.value === "true";
@@ -211,14 +208,6 @@ preferentialSelect?.addEventListener("change", () => {
 preferentialType?.addEventListener("change", () => {
   if (preferentialDescription) preferentialDescription.required =
     preferentialSelect?.value === "true" && preferentialType.value === "Outro";
-});
-returningSelect?.addEventListener("change", () => {
-  const returning = returningSelect.value === "Sim";
-  if (mediumNameWrap) mediumNameWrap.hidden = !returning;
-  if (mediumNameInput) {
-    mediumNameInput.required = returning;
-    if (!returning) mediumNameInput.value = "";
-  }
 });
 
 reservationForm?.addEventListener("submit", async (event) => {
@@ -243,8 +232,6 @@ reservationForm?.addEventListener("submit", async (event) => {
     payload.tipo_preferencial = value("preferential-type");
     if (payload.tipo_preferencial === "Outro") payload.descricao_preferencial = value("preferential-description");
   }
-  if (value("returning")) payload.retorno = value("returning");
-  if (value("returning") === "Sim") payload.medium_nome = value("medium-name");
   reservationSubmit.disabled = true;
   reservationSubmit.textContent = "Enviando…";
   const configMessage = document.getElementById("config-message");
@@ -262,7 +249,6 @@ reservationForm?.addEventListener("submit", async (event) => {
     turnstileTokenForHomologation = null;
     if (window.turnstile?.reset) window.turnstile.reset();
     if (preferentialDetails) preferentialDetails.hidden = true;
-    if (mediumNameWrap) mediumNameWrap.hidden = true;
     if (preferentialType) preferentialType.required = false;
     if (preferentialDescription) preferentialDescription.required = false;
     if (configMessage) configMessage.textContent = publicPortalSettings.mensagem_confirmacao || result.message || "Solicitação recebida.";
