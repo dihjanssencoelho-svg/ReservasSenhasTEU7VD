@@ -715,11 +715,44 @@ function showTeamSession(role) {
             });
             actions.append(returnForm);
           }
-          const locked = document.createElement("button");
-          locked.type = "button"; locked.disabled = true;
-          locked.textContent = "Demais ações bloqueadas";
-          locked.title = "Cancelamento, reabertura e exclusão permanecem bloqueados.";
-          actions.append(locked); tr.append(actions); tbody.append(tr);
+          if (role === "admin" && item.status !== "excluida") {
+            const deleteButton = document.createElement("button");
+            deleteButton.type = "button";
+            deleteButton.className = "danger-button";
+            deleteButton.textContent = "Excluir reserva";
+            deleteButton.title = "Exclui com auditoria e libera a senha para reutilização segura.";
+            deleteButton.addEventListener("click", async () => {
+              const reason = window.prompt("Informe o motivo da exclusão desta reserva (mínimo 5 caracteres):", "Exclusão administrativa solicitada");
+              if (reason === null) return;
+              if (reason.trim().length < 5 || reason.trim().length > 500) {
+                window.alert("O motivo deve ter entre 5 e 500 caracteres.");
+                return;
+              }
+              if (!window.confirm("Confirmar exclusão da reserva " + (item.senha_original || item.senha_numero || "") + "? A senha será liberada para reutilização.")) return;
+              const token = getToken();
+              if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
+              deleteButton.disabled = true;
+              deleteButton.textContent = "Excluindo…";
+              try {
+                const response = await fetch(SUPABASE_URL + "/functions/v1/admin-reservas", {
+                  method: "POST",
+                  headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "delete", reservation_id: item.id, reason: reason.trim() }),
+                  cache: "no-store"
+                });
+                const result = await response.json().catch(() => null);
+                if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível excluir a reserva.");
+                status.textContent = result.message || "Reserva excluída; senha liberada.";
+                await fetchReservations();
+              } catch (error) {
+                window.alert(error instanceof Error ? error.message : "Não foi possível excluir a reserva.");
+                deleteButton.disabled = false;
+                deleteButton.textContent = "Excluir reserva";
+              }
+            });
+            actions.append(deleteButton);
+          }
+          tr.append(actions); tbody.append(tr);
         }
         table.append(thead, tbody);
         const scroll = document.createElement("div"); scroll.className = "admin-table-scroll"; scroll.append(table); results.append(scroll);
