@@ -35,7 +35,8 @@ try {
     if (requestUrl.pathname === "/rest/v1/perfis_admin") {
       return json([{ user_id: "123e4567-e89b-12d3-a456-426614174000", papel: "admin", ativo: true }]);
     }
-    if (requestUrl.pathname === "/rest/v1/giras" || requestUrl.pathname === "/rest/v1/rpc/teu7vd_resumo_vagas_publico") return json([]);
+    if (requestUrl.pathname === "/rest/v1/giras") return json([{ id: "123e4567-e89b-12d3-a456-426614174000", titulo: "Gira de teste", data_gira: "2027-01-15", limite_vagas: 20, tipo_gira: "Caboclos" }]);
+    if (requestUrl.pathname === "/rest/v1/rpc/teu7vd_resumo_vagas_publico") return json([]);
     if (requestUrl.pathname === "/rest/v1/configuracoes_portal") {
       return json([{ mensagem_publica: "Mensagem de teste", mensagem_confirmacao: "Confirmação de teste", cor_primaria: "#17131e", cor_destaque: "#c9a86a", limite_alerta_vagas: 5 }]);
     }
@@ -57,6 +58,11 @@ try {
   assert.ok(response, "O portal local não retornou resposta HTTP.");
   assert.equal(response.status(), 200, "O portal local não respondeu HTTP 200.");
   await page.getByRole("heading", { name: "Reserva de Vagas" }).waitFor();
+  assert.equal(await page.locator("#reservation-panel").isHidden(), true, "O formulário deve aguardar a seleção de uma gira.");
+  await page.locator(".gira-card").click();
+  assert.equal(await page.locator("#reservation-panel").isVisible(), true, "Selecionar um card deve abrir o formulário.");
+  assert.equal(await page.locator("#event").inputValue(), "123e4567-e89b-12d3-a456-426614174000");
+  assert.equal(await page.locator("#full-name").evaluate(el => document.activeElement === el), true, "O foco deve ir para o primeiro campo após escolher a gira.");
 
   const name = page.locator("#full-name");
   const event = page.locator("#event");
@@ -92,6 +98,7 @@ try {
   assert.equal(await page.locator("#new-gira-title").isVisible(), true, "O administrador deveria poder cadastrar novas giras.");
   assert.equal(await page.locator("#new-gira-capacity").getAttribute("type"), "number");
   assert.equal(await page.locator("#new-gira-capacity").getAttribute("min"), "1");
+  assert.equal(await page.locator(".admin-section").count(), 4, "As funções administrativas devem aparecer agrupadas em quatro áreas.");
   await page.locator("#new-gira-title").fill("Gira de teste");
   await page.locator("#new-gira-date").fill("2027-01-15");
   await page.locator("#new-gira-type").fill("Caboclos");
