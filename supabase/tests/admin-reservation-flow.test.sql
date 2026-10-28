@@ -67,6 +67,9 @@ begin
   if public.teu7vd_atualizar_retorno_reserva(v_admin_reserva,'Sim','Médium de teste',v_actor) is not true then
     raise exception 'Falha: edição administrativa de retorno';
   end if;
+  if not exists (select 1 from public.auditoria where acao='reserva_retorno_atualizado' and entidade_id=v_admin_reserva::text and user_id=v_actor and detalhes->>'actor_id'=v_actor::text) then
+    raise exception 'Falha: auditoria de retorno sem ator normalizado';
+  end if;
   if public.teu7vd_excluir_reserva_v2(v_admin_reserva,'teste de liberação de senha',v_actor) is not true then
     raise exception 'Falha: exclusão administrativa comum';
   end if;
