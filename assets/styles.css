@@ -88,7 +88,8 @@ button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-all
 }
 /* Agenda pública de giras */
 .giras-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .85rem; margin-top: 1rem; }
-.gira-card { padding: 1.1rem; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--shadow); cursor: pointer; transition: border-color .15s, box-shadow .15s; }\n.gira-card:hover, .gira-card.selected { border-color: var(--purple); box-shadow: 0 0 0 2px #8c27871a, var(--shadow); }
+.gira-card { padding: 1.1rem; border: 1px solid var(--line); border-radius: 12px; background: #fff; box-shadow: var(--shadow); cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+.gira-card:hover, .gira-card.selected { border-color: var(--purple); box-shadow: 0 0 0 2px #8c27871a, var(--shadow); }
 .gira-card h3 { color: var(--purple); font-family: Georgia, serif; font-size: 1.2rem; }
 .gira-card p { overflow-wrap: anywhere; }
 .gira-vacancies { margin: .75rem 0 .25rem; font-weight: 800; color: var(--green); }
@@ -103,7 +104,7 @@ button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-all
 
 
 /* Área administrativa — listagem protegida, filtros e tabela responsiva */
-.admin-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .45rem .8rem; margin: 1rem 0; }
+.admin-filters { display: grid; grid-template-columns: minmax(0, 1fr); gap: .45rem .8rem; margin: 1rem 0; }
 .admin-filters label { align-self: end; }
 .admin-filters input, .admin-filters select { min-width: 0; }
 .admin-date-row, .admin-filter-actions { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
@@ -186,3 +187,22 @@ button:disabled, input:disabled, select:disabled { opacity: .65; cursor: not-all
   .giras-grid { grid-template-columns: minmax(0, 1fr); }
   .brand-emoji { display: none; }
 }
+
+/* Painel administrativo organizado por áreas recolhíveis. */
+.admin-dashboard { display: grid; gap: .85rem; margin-top: 1rem; }
+.admin-section { min-width: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 13px; background: #fff; }
+.admin-section > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem 1rem; color: var(--text); font-weight: 800; cursor: pointer; list-style: none; }
+.admin-section > summary::-webkit-details-marker { display: none; }
+.admin-section > summary::after { content: "+"; flex: 0 0 auto; color: var(--purple); font-size: 1.2rem; line-height: 1; }
+.admin-section[open] > summary { border-bottom: 1px solid var(--line); background: #fbf8fc; }
+.admin-section[open] > summary::after { content: "−"; }
+.admin-section > summary:focus-visible { outline: 3px solid #8c278755; outline-offset: -3px; }
+.admin-section-content { min-width: 0; padding: .15rem 1rem 1rem; }
+.admin-filters { grid-template-columns: minmax(0, 1fr); gap: .35rem; margin: .85rem 0; max-width: 760px; }
+.admin-filters label { margin-top: .35rem; }
+.admin-filters input, .admin-filters select, .admin-filters textarea { width: 100%; min-width: 0; }
+.admin-filters h4 { margin: .4rem 0 0; }
+.admin-filters > p { margin: .25rem 0 .35rem; }
+.admin-filter-actions { grid-column: 1; }
+.gira-card:focus-visible { outline: 3px solid #8c278755; outline-offset: 3px; }
+#reservation-panel[hidden] { display: none !important; }
