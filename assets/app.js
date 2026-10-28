@@ -245,14 +245,16 @@ reservationForm?.addEventListener("submit", async (event) => {
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível concluir a reserva. Tente novamente.");
+    const firstName = value("full-name").split(/\\s+/).filter(Boolean)[0] || "consulente";
     reservationForm.reset();
     turnstileTokenForHomologation = null;
     if (window.turnstile?.reset) window.turnstile.reset();
     if (preferentialDetails) preferentialDetails.hidden = true;
     if (preferentialType) preferentialType.required = false;
     if (preferentialDescription) preferentialDescription.required = false;
-    if (configMessage) configMessage.textContent = publicPortalSettings.mensagem_confirmacao || result.message || "Solicitação recebida.";
+    if (configMessage) configMessage.textContent = "Sua solicitação foi confirmada.";
     if (turnstileStatus) turnstileStatus.textContent = "Verificação utilizada. Faça uma nova verificação para outra solicitação.";
+    showReservationWelcome(firstName);
   } catch (error) {
     turnstileTokenForHomologation = null;
     if (window.turnstile?.reset) window.turnstile.reset();
@@ -263,6 +265,58 @@ reservationForm?.addEventListener("submit", async (event) => {
     reservationSubmit.textContent = "Solicitar reserva";
   }
 });
+
+
+// Mensagens acolhedoras após a confirmação da reserva, em duas etapas acessíveis.
+function showReservationWelcome(firstName) {
+  const overlay = document.createElement("div");
+  overlay.className = "welcome-overlay";
+  overlay.setAttribute("role", "presentation");
+  const dialog = document.createElement("section");
+  dialog.className = "welcome-dialog";
+  dialog.setAttribute("role", "dialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("aria-labelledby", "welcome-title");
+  dialog.setAttribute("aria-describedby", "welcome-message");
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "welcome-ok";
+  closeButton.textContent = "OK";
+  const showFirst = () => {
+    dialog.replaceChildren();
+    const title = document.createElement("h2");
+    title.id = "welcome-title";
+    title.textContent = "Reserva Confirmada!";
+    const greeting = document.createElement("p");
+    greeting.className = "welcome-greeting";
+    greeting.id = "welcome-message";
+    greeting.textContent = "Bem-vindo(a), " + firstName + "!";
+    const instruction = document.createElement("p");
+    instruction.textContent = "Sua senha será entregue no portão, antes do início da Gira.";
+    closeButton.onclick = showSecond;
+    dialog.append(title, greeting, instruction, closeButton);
+  };
+  const showSecond = () => {
+    dialog.replaceChildren();
+    const title = document.createElement("h2");
+    title.id = "welcome-title";
+    title.textContent = "🌟 Sejam muito bem-vindos a nossa casa 🌟";
+    const donation = document.createElement("p");
+    donation.id = "welcome-message";
+    donation.textContent = "Lembre-se: pedimos a doação de 1kg de alimento não perecível, que será destinado ao nosso projeto social. Vamos juntos levar amor e caridade a quem mais precisa!";
+    const returnInfo = document.createElement("p");
+    returnInfo.textContent = "Em caso de necessidade de retorno, você será marcado(a) diretamente no dia da gira pela entidade juntamente com o cambone que lhe atender. O cambone é o assistente da entidade que faz o atendimento.";
+    closeButton.onclick = () => overlay.remove();
+    closeButton.textContent = "Concluir";
+    dialog.append(title, donation, returnInfo, closeButton);
+    title.focus?.();
+  };
+  overlay.addEventListener("click", event => { if (event.target === overlay) return; });
+  overlay.append(dialog);
+  document.body.append(overlay);
+  showFirst();
+  closeButton.focus();
+}
 
 loadPublishedGiras();
 
