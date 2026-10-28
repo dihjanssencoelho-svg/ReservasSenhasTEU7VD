@@ -286,4 +286,9 @@ jobs:
           curl --fail --silent --show-error --location --retry 5 --retry-delay 5 "$url" -o /tmp/teu7vd-public.html
           grep -q 'id="reservation-submit" type="submit">Solicitar reserva</button>' /tmp/teu7vd-public.html
           grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' /tmp/teu7vd-public.html
-          echo "OK: o HTML publicado contém o formulário ativo e a verificação Turnstile. Nenhuma reserva foi enviada."
+          logo_url="https://raw.githubusercontent.com/dihjanssencoelho-svg/siteTEU7VD/main/assets/logo-teu7vd.jpeg"
+          grep -Fq "$logo_url" /tmp/teu7vd-public.html
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$logo_url" -o /tmp/teu7vd-logo.jpeg
+          logo_signature="$(od -An -tx1 -N3 /tmp/teu7vd-logo.jpeg | tr -d ' \n')"
+          test "$logo_signature" = "ffd8ff"
+          echo "OK: formulário, Turnstile e imagem oficial JPEG acessíveis na versão publicada. Nenhuma reserva foi enviada."
