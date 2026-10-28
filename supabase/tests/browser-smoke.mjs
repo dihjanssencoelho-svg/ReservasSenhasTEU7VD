@@ -129,7 +129,7 @@ try {
   assert.equal(adminActionPayloads[0].action, "update_return");
   await page.evaluate(() => { window.prompt = () => "Teste de exclusão em homologação"; window.confirm = () => true; });
   await page.getByRole("button", { name: "Excluir reserva" }).click();
-  await page.getByText("Reserva excluída; senha liberada.").waitFor();
+  await page.getByText("Nenhuma reserva encontrada").waitFor();
   assert.equal(adminActionPayloads[1].action, "delete");
   assert.equal(adminActionPayloads[1].reservation_id, "323e4567-e89b-12d3-a456-426614174000");
   await page.locator("#new-gira-title").fill("Gira de teste");
