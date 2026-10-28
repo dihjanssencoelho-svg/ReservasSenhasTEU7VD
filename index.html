@@ -15,7 +15,7 @@
       <span class="brand-name">Reserva de Vagas</span>
     </a>
     <nav class="site-nav" aria-label="Navegação principal">
-      <a class="nav-link nav-link-active" href="#reservation-title">Formulário</a>
+      <button id="agenda-view-toggle" class="nav-link nav-link-active" type="button">Agenda</button>
       <button id="team-access-toggle" class="nav-link nav-admin" type="button" aria-expanded="false" aria-controls="team-access">Painel Admin</button>
     </nav>
   </header>
@@ -72,7 +72,7 @@
         </div>
         <div class="turnstile-wrap">
           <p class="small muted">Conclua a verificação de segurança antes de enviar.</p>
-          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-" data-callback="onTurnstileVerified" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileError" data-theme="dark"></div>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-" data-callback="onTurnstileVerified" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileError" data-theme="light"></div>
           <p id="turnstile-status" class="small muted" role="status" aria-live="polite">A verificação é obrigatória para enviar a solicitação.</p>
         </div>
         <button id="reservation-submit" type="submit">Solicitar reserva</button>
@@ -85,7 +85,7 @@
     </section>
   </main>
 
-  <section class="container team-access-wrap" aria-labelledby="team-access-title">
+  <section class="container team-access-wrap" aria-labelledby="team-access-title" hidden>
     <section id="team-access" class="panel team-access" hidden>
       <p class="eyebrow">Área restrita</p>
       <h2 id="team-access-title">Acesso da equipe TEU7VD</h2>
