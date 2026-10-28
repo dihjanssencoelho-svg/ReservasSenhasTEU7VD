@@ -107,6 +107,12 @@ try {
   assert.equal(await page.locator("#team-access").isHidden(), true, "A área restrita deveria iniciar fechada.");
   const accessToggle = page.locator("#team-access-toggle");
   await accessToggle.click();
+  assert.equal(await page.locator("main.container").isHidden(), true, "A aba administrativa deve ocultar a agenda pública.");
+  assert.equal(await page.locator(".team-access-wrap").isVisible(), true, "A aba administrativa deve ocupar uma área separada.");
+  await page.locator("#agenda-view-toggle").click();
+  assert.equal(await page.locator("main.container").isVisible(), true, "A aba Agenda deve restaurar a agenda pública.");
+  assert.equal(await page.locator(".team-access-wrap").isHidden(), true, "A aba Agenda deve ocultar o painel administrativo.");
+  await accessToggle.click();
   await page.locator("#team-email").fill("admin@example.invalid");
   await page.locator("#team-password").fill("mock-password");
   await page.locator("#team-login-submit").click();
