@@ -626,10 +626,57 @@ function showTeamSession(role) {
             : [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", [item.telefone, item.email].filter(Boolean).join(" · ") || "—", item.data_nascimento ? formatDate(item.data_nascimento) : "—", birthdayWithinGiraWeek(item.data_nascimento, item.gira?.data_gira) ? "🎂 Nesta semana da gira" : "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"];
           values.forEach(value => { const td = document.createElement("td"); td.textContent = String(value ?? "—"); tr.append(td); });
           const actions = document.createElement("td");
+          if (role === "admin") {
+            const returnForm = document.createElement("form");
+            returnForm.className = "admin-return-editor";
+            const returnLabel = document.createElement("label");
+            returnLabel.textContent = "Retorno com médium";
+            const returnSelect = document.createElement("select");
+            returnSelect.setAttribute("aria-label", "Retorno com médium");
+            [["", "Não informado"], ["Sim", "Sim"], ["Não", "Não"]].forEach(([value, label]) => returnSelect.add(new Option(label, value)));
+            returnSelect.value = item.retorno || "";
+            const mediumLabel = document.createElement("label");
+            mediumLabel.textContent = "Nome do médium";
+            const mediumInput = document.createElement("input");
+            mediumInput.type = "text"; mediumInput.maxLength = 180;
+            mediumInput.value = item.medium_nome || "";
+            mediumInput.placeholder = "Nome do médium (opcional)";
+            mediumInput.disabled = returnSelect.value !== "Sim";
+            returnSelect.addEventListener("change", () => {
+              mediumInput.disabled = returnSelect.value !== "Sim";
+              if (mediumInput.disabled) mediumInput.value = "";
+            });
+            const saveReturn = document.createElement("button");
+            saveReturn.type = "submit"; saveReturn.textContent = "Salvar retorno";
+            const returnStatus = document.createElement("p");
+            returnStatus.className = "small muted"; returnStatus.setAttribute("role", "status");
+            returnForm.append(returnLabel, returnSelect, mediumLabel, mediumInput, saveReturn, returnStatus);
+            returnForm.addEventListener("submit", async event => {
+              event.preventDefault();
+              const token = getToken();
+              if (!token) { returnStatus.textContent = "Sessão expirada. Entre novamente."; return; }
+              saveReturn.disabled = true; returnStatus.textContent = "Salvando com auditoria…";
+              try {
+                const response = await fetch(SUPABASE_URL + "/functions/v1/admin-reservas", {
+                  method: "POST",
+                  headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
+                  body: JSON.stringify({ action: "update_return", reservation_id: item.id, retorno: returnSelect.value, medium_nome: mediumInput.value.trim() }),
+                  cache: "no-store"
+                });
+                const result = await response.json().catch(() => null);
+                if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível salvar.");
+                returnStatus.textContent = "Retorno atualizado e auditado.";
+                item.retorno = returnSelect.value || null;
+                item.medium_nome = returnSelect.value === "Sim" ? mediumInput.value.trim() : null;
+              } catch (error) { returnStatus.textContent = error instanceof Error ? error.message : "Não foi possível salvar."; }
+              finally { saveReturn.disabled = false; }
+            });
+            actions.append(returnForm);
+          }
           const locked = document.createElement("button");
           locked.type = "button"; locked.disabled = true;
-          locked.textContent = "Ações bloqueadas";
-          locked.title = role === "admin" ? "Liberar somente após testes de segurança e homologação." : "Este papel não pode executar ações sensíveis.";
+          locked.textContent = "Demais ações bloqueadas";
+          locked.title = "Cancelamento, reabertura e exclusão permanecem bloqueados.";
           actions.append(locked); tr.append(actions); tbody.append(tr);
         }
         table.append(thead, tbody);
