@@ -28,6 +28,7 @@ try {
   let ordinaryPayload = null;
   let adminActionPayloads = [];
   let reservationDeleted = false;
+  let publicReservationPayload = null;
   await page.route("https://emwnytvlbpgiwqswojze.supabase.co/**", async (route) => {
     const request = route.request();
     const requestUrl = new URL(request.url());
@@ -48,6 +49,10 @@ try {
       const savedReturn = adminActionPayloads.find((x) => x.action === "update_return");
       const data = reservationDeleted ? [] : [{ id: "323e4567-e89b-12d3-a456-426614174000", senha_original: "7", senha_numero: 7, nome_completo: "Pessoa Teste", telefone: null, email: null, data_nascimento: null, retorno: savedReturn?.retorno || null, medium_nome: savedReturn?.medium_nome || null, preferencial: false, tipo_preferencial: null, status: "ativa", gira: giras[0] }];
       return json({ success: true, role: "admin", data, giras, total: data.length, page: 1, page_size: 25 });
+    }
+    if (requestUrl.pathname === "/functions/v1/criar-reserva") {
+      publicReservationPayload = JSON.parse(request.postData() || "{}");
+      return json({ success: true, message: "Reserva confirmada para homologação.", reservation_id: "523e4567-e89b-12d3-a456-426614174000", senha: 9 });
     }
     if (requestUrl.pathname === "/functions/v1/admin-criar-reserva") {
       ordinaryPayload = JSON.parse(request.postData() || "{}");
@@ -104,6 +109,33 @@ try {
   assert.equal(createReservationRequests.length, 0, "Foi detectada chamada sem Turnstile ao endpoint criar-reserva.");
   assert.match(await page.locator("#turnstile-status").innerText(), /Conclua a verificação antirobô/);
 
+  // Caminho positivo: token Turnstile simulado e duas mensagens exibidas na ordem contratada.
+  await page.evaluate(() => window.onTurnstileVerified("mock-turnstile-token"));
+  await page.locator("#reservation-form").evaluate((form) => {
+    form.querySelector("#full-name").value = "Mariana Teste";
+    form.querySelector("#event").value = "123e4567-e89b-12d3-a456-426614174000";
+    form.querySelector("#dob").value = "1990-04-12";
+    form.querySelector("#phone").value = "11987654321";
+    form.querySelector("#email").value = "mariana@example.invalid";
+    form.querySelector("#first-time").value = "Sim";
+    form.querySelector("#preferential").value = "false";
+    form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+  const firstPopup = page.getByRole("dialog", { name: "Reserva Confirmada!" });
+  await firstPopup.waitFor();
+  await page.getByText("Bem-vindo(a), Mariana!", { exact: true }).waitFor();
+  await page.getByText("Sua senha será entregue no portão, antes do início da Gira.", { exact: true }).waitFor();
+  assert.equal(createReservationRequests.length, 1, "O caminho positivo deve chamar criar-reserva uma única vez.");
+  assert.equal(publicReservationPayload.nome_completo, "Mariana Teste");
+  assert.equal(publicReservationPayload.gira_id, "123e4567-e89b-12d3-a456-426614174000");
+  await firstPopup.getByRole("button", { name: "OK" }).click();
+  const secondPopup = page.getByRole("dialog", { name: "🌟 Sejam muito bem-vindos a nossa casa 🌟" });
+  await secondPopup.waitFor();
+  await page.getByText(/doação de 1kg de alimento não perecível/, { exact: false }).waitFor();
+  await page.getByText(/cambone que lhe atender/, { exact: false }).waitFor();
+  await secondPopup.getByRole("button", { name: "Concluir" }).click();
+  await secondPopup.waitFor({ state: "detached" });
+
   assert.equal(await page.locator("#team-access").isHidden(), true, "A área restrita deveria iniciar fechada.");
   const accessToggle = page.locator("#team-access-toggle");
   await accessToggle.click();
@@ -157,7 +189,7 @@ try {
   await page.getByText("Gira cadastrada e publicada com 12 senhas disponíveis.").waitFor();
   assert.deepEqual(giraPayload, { titulo: "Gira de teste", data_gira: "2027-01-15", tipo_gira: "Caboclos", limite_vagas: 12 });
 
-  console.log("OK homologação local: Turnstile bloqueia envio público sem token; cadastro comum exige somente gira; edição de retorno e exclusão são enviadas ao endpoint administrativo mockado.");
+  console.log("OK homologação local: Turnstile bloqueia envio sem token; pop-ups públicos aparecem na sequência correta; cadastro administrativo, edição de retorno, exclusão e cadastro de gira são testados com APIs mockadas.");
 } finally {
   await browser.close();
   await new Promise((resolveClose) => server.close(resolveClose));
