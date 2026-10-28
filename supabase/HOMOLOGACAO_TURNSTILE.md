@@ -146,3 +146,13 @@ As funções `admin-criar-reserva`, `admin-reservas`, `listar-reservas` e `criar
 4. O ensaio de reversão operacional do frontend/backend não foi executado. O código de restauração do banco não substitui um plano de rollback de implantação.
 5. Não promover a `main` nem liberar reservas públicas até que os pontos acima sejam comprovados. Não usar token pessoal, segredo de produção ou dados reais como substituto.
 
+
+
+## Registro incremental — 28/10/2026 — continuação da homologação
+
+- **CI do commit de evidências:** run [40769187483](https://github.com/dihjanssencoelho-svg/ReservasSenhasTEU7VD/actions/runs/40769187483) concluiu `success`. O run de pull request [40769196068](https://github.com/dihjanssencoelho-svg/ReservasSenhasTEU7VD/actions/runs/40769196068) também concluiu `success`. Os checks estáticos, smoke do portal, integração local com rollback e smoke HTTP negativo permaneceram aprovados.
+- **Estado do lote de importação artificial:** o lote `607064f0-40bf-45f3-a814-f1506093ebd3` permanece em `validado`; consulta de homologação não encontrou reserva com a chave artificial de fixture. A tentativa de aplicar a RPC diretamente via SQL foi rejeitada com `Apenas administrador ativo pode aplicar importação`, apesar de o perfil de teste constar como admin ativo. Isso é coerente com a necessidade de executar a operação sob contexto autenticado válido, e **não** constitui aprovação do fluxo positivo. Nenhuma reserva foi criada por essa tentativa.
+- **Backup autenticado:** revisão do código de `admin-backup` confirma autenticação Bearer, validação de usuário por `auth.getUser`, verificação de perfil admin ativo, exportação paginada das tabelas e evento de auditoria antes de devolver o payload. Isso é revisão estática; a chamada autenticada e o conteúdo de backup ainda não foram testados ponta a ponta.
+- **Turnstile:** o código de `criar-reserva` falha de forma fechada quando o segredo está ausente, quando o Siteverify falha ou quando o provedor não retorna `success=true`. Nenhum token positivo real de teste foi obtido nesta execução; não se simulou nem se falsificou resposta positiva.
+- **Reversão:** o workflow local confirma rollback de integração local, mas não houve reversão real de uma implantação Supabase/Pages. Não declarar rollback operacional completo.
+- **Decisão:** homologação continua **BLOQUEADA PARA LIBERAÇÃO**. Próximas ações dependem de sessão JWT de uma conta administrativa artificial para testar os endpoints autenticados, token Turnstile positivo oficialmente emitido para o hostname de teste e ensaio controlado de reversão de implantação. Não promover `main`, não mesclar PR #1 e não habilitar o formulário público enquanto esses gates não passarem.
