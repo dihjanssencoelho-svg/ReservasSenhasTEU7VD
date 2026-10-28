@@ -269,7 +269,24 @@ loadPublishedGiras();
 
 // Login de equipe pelo próprio portal. Nenhuma ação administrativa é executada nesta fase.
 const teamAccessToggle = document.getElementById("team-access-toggle");
+const agendaViewToggle = document.getElementById("agenda-view-toggle");
+const publicMain = document.querySelector("main.container");
+const privacyNote = document.querySelector(".privacy-note");
+const siteFooter = document.querySelector(".site-footer");
+const teamAccessWrap = document.querySelector(".team-access-wrap");
 const teamAccess = document.getElementById("team-access");
+const showPortalView = (view) => {
+  const admin = view === "admin";
+  if (publicMain) publicMain.hidden = admin;
+  if (privacyNote) privacyNote.hidden = admin;
+  if (siteFooter) siteFooter.hidden = admin;
+  if (teamAccessWrap) teamAccessWrap.hidden = !admin;
+  if (agendaViewToggle) agendaViewToggle.classList.toggle("nav-link-active", !admin);
+  if (teamAccessToggle) { teamAccessToggle.classList.toggle("nav-link-active", admin); teamAccessToggle.setAttribute("aria-expanded", String(admin)); }
+  if (admin && teamAccess?.hidden) teamAccess.hidden = false;
+  if (!admin && teamAccess) teamAccess.hidden = true;
+};
+agendaViewToggle?.addEventListener("click", () => showPortalView("agenda"));
 const teamLoginForm = document.getElementById("team-login-form");
 const teamLoginStatus = document.getElementById("team-login-status");
 const teamSession = document.getElementById("team-session");
@@ -598,6 +615,44 @@ function showTeamSession(role) {
       return session.access_token;
     } catch { return null; }
   };
+  const openReservationEditor = (item) => {
+    const overlay = document.createElement("div"); overlay.className = "reservation-editor-overlay";
+    const dialog = document.createElement("section"); dialog.className = "reservation-editor";
+    dialog.setAttribute("role", "dialog"); dialog.setAttribute("aria-modal", "true"); dialog.setAttribute("aria-labelledby", "reservation-editor-title");
+    dialog.innerHTML = '<div class="editor-heading"><div><p class="eyebrow">Cadastro administrativo</p><h2 id="reservation-editor-title">Editar retorno</h2></div><span class="editor-ticket">Senha ' + escapeHtml(item.senha_original || item.senha_numero || "—") + '</span></div>' +
+      '<div class="editor-readonly-grid">' +
+      '<div><span>Data da gira</span><strong>' + escapeHtml(formatDate(item.gira?.data_gira)) + '</strong></div>' +
+      '<div><span>Gira / atendimento</span><strong>' + escapeHtml(item.gira?.titulo || "—") + '</strong></div>' +
+      '<div><span>Nome do consulente</span><strong>' + escapeHtml(item.nome_completo || "Não informado") + '</strong></div>' +
+      '<div><span>Data de nascimento</span><strong>' + escapeHtml(item.data_nascimento ? formatDate(item.data_nascimento) : "Não informada") + '</strong></div>' +
+      '<div><span>Telefone</span><strong>' + escapeHtml(item.telefone || "Não informado") + '</strong></div>' +
+      '<div><span>E-mail</span><strong>' + escapeHtml(item.email || "Não informado") + '</strong></div></div>' +
+      '<form class="reservation-editor-form"><label for="editor-return">Há retorno com médium?</label><select id="editor-return" name="retorno"><option value="Não">Não</option><option value="Sim">Sim</option></select>' +
+      '<div class="editor-medium-field" hidden><label for="editor-medium">Nome do médium</label><input id="editor-medium" name="medium_nome" maxlength="180" placeholder="Digite o nome do médium"></div>' +
+      '<p class="small muted editor-status" role="status" aria-live="polite"></p><div class="editor-actions"><button type="button" class="secondary-button editor-cancel">Cancelar</button><button type="submit" class="editor-save">Salvar alterações</button></div></form>';
+    overlay.append(dialog); document.body.append(overlay);
+    const form = dialog.querySelector("form"), returnSelect = dialog.querySelector("#editor-return"), mediumWrap = dialog.querySelector(".editor-medium-field"), mediumInput = dialog.querySelector("#editor-medium"), statusLine = dialog.querySelector(".editor-status"), saveButton = dialog.querySelector(".editor-save");
+    const close = () => overlay.remove();
+    returnSelect.value = item.retorno === "Sim" ? "Sim" : "Não"; mediumInput.value = item.medium_nome || "";
+    mediumWrap.hidden = returnSelect.value !== "Sim"; mediumInput.required = returnSelect.value === "Sim";
+    returnSelect.addEventListener("change", () => { const yes = returnSelect.value === "Sim"; mediumWrap.hidden = !yes; mediumInput.required = yes; if (!yes) mediumInput.value = ""; else mediumInput.focus(); });
+    dialog.querySelector(".editor-cancel").addEventListener("click", close);
+    overlay.addEventListener("click", event => { if (event.target === overlay) close(); });
+    dialog.addEventListener("keydown", event => { if (event.key === "Escape") close(); });
+    form.addEventListener("submit", async event => {
+      event.preventDefault(); if (!form.reportValidity()) return;
+      const token = getToken(); if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); close(); return; }
+      saveButton.disabled = true; statusLine.textContent = "Salvando e registrando auditoria…";
+      try {
+        const response = await fetch(SUPABASE_URL + "/functions/v1/admin-reservas", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ action: "update_return", reservation_id: item.id, retorno: returnSelect.value, medium_nome: returnSelect.value === "Sim" ? mediumInput.value.trim() : "" }), cache: "no-store" });
+        const result = await response.json().catch(() => null); if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível salvar.");
+        item.retorno = returnSelect.value; item.medium_nome = returnSelect.value === "Sim" ? mediumInput.value.trim() : null;
+        status.textContent = "Retorno atualizado e auditado."; await fetchReservations(); close();
+      } catch (error) { statusLine.textContent = error instanceof Error ? error.message : "Não foi possível salvar."; saveButton.disabled = false; }
+    });
+    returnSelect.focus();
+  };
+
   const fetchReservations = async () => {
     const token = getToken();
     if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
@@ -654,8 +709,8 @@ function showTeamSession(role) {
         const table = document.createElement("table");
         table.className = "admin-table";
         const headers = role === "operador"
-          ? ["Senha", "Nome", "Gira", "Status", "Preferencial", "Ações"]
-          : ["Senha", "Nome", "Gira", "Contato", "Nascimento", "Aniversário", "Status", "Preferencial", "Ações"];
+          ? ["Senha", "Nome", "Gira", "Status", "Preferencial"]
+          : ["Senha", "Nome", "Gira", "Contato", "Nascimento", "Aniversário", "Status", "Preferencial", "Retorno / Médium", "Ações"];
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
         headers.forEach(label => { const th = document.createElement("th"); th.textContent = label; headerRow.append(th); });
@@ -663,94 +718,49 @@ function showTeamSession(role) {
         const tbody = document.createElement("tbody");
         for (const item of result.data) {
           const tr = document.createElement("tr");
+          const returnSummary = item.retorno === "Sim" && item.medium_nome
+            ? "Sim · " + item.medium_nome
+            : item.retorno === "Sim" ? "Sim · Médium não informado" : item.retorno === "Não" ? "Não" : "Não informado";
           const values = role === "operador"
             ? [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"]
-            : [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", [item.telefone, item.email].filter(Boolean).join(" · ") || "—", item.data_nascimento ? formatDate(item.data_nascimento) : "—", birthdayWithinGiraWeek(item.data_nascimento, item.gira?.data_gira) ? "🎂 Nesta semana da gira" : "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não"];
+            : [item.senha_original || String(item.senha_numero ?? "—"), item.nome_completo, item.gira?.titulo || "—", [item.telefone, item.email].filter(Boolean).join(" · ") || "—", item.data_nascimento ? formatDate(item.data_nascimento) : "—", birthdayWithinGiraWeek(item.data_nascimento, item.gira?.data_gira) ? "🎂 Nesta semana da gira" : "—", item.status, item.preferencial ? (item.tipo_preferencial || "Sim") : "Não", returnSummary];
           values.forEach(value => { const td = document.createElement("td"); td.textContent = String(value ?? "—"); tr.append(td); });
           const actions = document.createElement("td");
           if (role === "admin") {
-            const returnForm = document.createElement("form");
-            returnForm.className = "admin-return-editor";
-            const returnLabel = document.createElement("label");
-            returnLabel.textContent = "Retorno com médium";
-            const returnSelect = document.createElement("select");
-            returnSelect.setAttribute("aria-label", "Retorno com médium");
-            [["", "Não informado"], ["Sim", "Sim"], ["Não", "Não"]].forEach(([value, label]) => returnSelect.add(new Option(label, value)));
-            returnSelect.value = item.retorno || "";
-            const mediumLabel = document.createElement("label");
-            mediumLabel.textContent = "Nome do médium";
-            const mediumInput = document.createElement("input");
-            mediumInput.type = "text"; mediumInput.maxLength = 180;
-            mediumInput.value = item.medium_nome || "";
-            mediumInput.placeholder = "Nome do médium (opcional)";
-            mediumInput.disabled = returnSelect.value !== "Sim";
-            returnSelect.addEventListener("change", () => {
-              mediumInput.disabled = returnSelect.value !== "Sim";
-              if (mediumInput.disabled) mediumInput.value = "";
-            });
-            const saveReturn = document.createElement("button");
-            saveReturn.type = "submit"; saveReturn.textContent = "Salvar retorno";
-            const returnStatus = document.createElement("p");
-            returnStatus.className = "small muted"; returnStatus.setAttribute("role", "status");
-            returnForm.append(returnLabel, returnSelect, mediumLabel, mediumInput, saveReturn, returnStatus);
-            returnForm.addEventListener("submit", async event => {
-              event.preventDefault();
-              const token = getToken();
-              if (!token) { returnStatus.textContent = "Sessão expirada. Entre novamente."; return; }
-              saveReturn.disabled = true; returnStatus.textContent = "Salvando com auditoria…";
-              try {
-                const response = await fetch(SUPABASE_URL + "/functions/v1/admin-reservas", {
-                  method: "POST",
-                  headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
-                  body: JSON.stringify({ action: "update_return", reservation_id: item.id, retorno: returnSelect.value, medium_nome: mediumInput.value.trim() }),
-                  cache: "no-store"
-                });
-                const result = await response.json().catch(() => null);
-                if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível salvar.");
-                returnStatus.textContent = "Retorno atualizado e auditado.";
-                item.retorno = returnSelect.value || null;
-                item.medium_nome = returnSelect.value === "Sim" ? mediumInput.value.trim() : null;
-              } catch (error) { returnStatus.textContent = error instanceof Error ? error.message : "Não foi possível salvar."; }
-              finally { saveReturn.disabled = false; }
-            });
-            actions.append(returnForm);
-          }
-          if (role === "admin" && item.status !== "excluida") {
-            const deleteButton = document.createElement("button");
-            deleteButton.type = "button";
-            deleteButton.className = "danger-button";
-            deleteButton.textContent = "Excluir reserva";
-            deleteButton.title = "Exclui com auditoria e libera a senha para reutilização segura.";
-            deleteButton.addEventListener("click", async () => {
-              const reason = window.prompt("Informe o motivo da exclusão desta reserva (mínimo 5 caracteres):", "Exclusão administrativa solicitada");
-              if (reason === null) return;
-              if (reason.trim().length < 5 || reason.trim().length > 500) {
-                window.alert("O motivo deve ter entre 5 e 500 caracteres.");
-                return;
-              }
-              if (!window.confirm("Confirmar exclusão da reserva " + (item.senha_original || item.senha_numero || "") + "? A senha será liberada para reutilização.")) return;
-              const token = getToken();
-              if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
-              deleteButton.disabled = true;
-              deleteButton.textContent = "Excluindo…";
-              try {
-                const response = await fetch(SUPABASE_URL + "/functions/v1/admin-reservas", {
-                  method: "POST",
-                  headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
-                  body: JSON.stringify({ action: "delete", reservation_id: item.id, reason: reason.trim() }),
-                  cache: "no-store"
-                });
-                const result = await response.json().catch(() => null);
-                if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível excluir a reserva.");
-                status.textContent = result.message || "Reserva excluída; senha liberada.";
-                await fetchReservations();
-              } catch (error) {
-                window.alert(error instanceof Error ? error.message : "Não foi possível excluir a reserva.");
-                deleteButton.disabled = false;
-                deleteButton.textContent = "Excluir reserva";
-              }
-            });
-            actions.append(deleteButton);
+            const actionGroup = document.createElement("div");
+            actionGroup.className = "reservation-actions";
+            const editButton = document.createElement("button");
+            editButton.type = "button"; editButton.className = "icon-action edit-action";
+            editButton.title = "Editar retorno e nome do médium";
+            editButton.setAttribute("aria-label", "Editar reserva " + (item.senha_original || item.senha_numero || ""));
+            editButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>Edit</span>';
+            editButton.addEventListener("click", () => openReservationEditor(item));
+            actionGroup.append(editButton);
+            if (item.status !== "excluida") {
+              const deleteButton = document.createElement("button");
+              deleteButton.type = "button"; deleteButton.className = "icon-action delete-action";
+              deleteButton.title = "Excluir reserva e liberar senha";
+              deleteButton.setAttribute("aria-label", "Excluir reserva " + (item.senha_original || item.senha_numero || ""));
+              deleteButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="m19 6-1 14H6L5 6"/><path d="M10 11v5M14 11v5"/></svg>';
+              deleteButton.addEventListener("click", async () => {
+                const reason = window.prompt("Informe o motivo da exclusão desta reserva (mínimo 5 caracteres):", "Exclusão administrativa solicitada");
+                if (reason === null) return;
+                if (reason.trim().length < 5 || reason.trim().length > 500) { window.alert("O motivo deve ter entre 5 e 500 caracteres."); return; }
+                if (!window.confirm("Confirmar exclusão da reserva " + (item.senha_original || item.senha_numero || "") + "? A senha será liberada para reutilização.")) return;
+                const token = getToken();
+                if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
+                deleteButton.disabled = true;
+                try {
+                  const response = await fetch(SUPABASE_URL + "/functions/v1/admin-reservas", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", reservation_id: item.id, reason: reason.trim() }), cache: "no-store" });
+                  const result = await response.json().catch(() => null);
+                  if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível excluir a reserva.");
+                  status.textContent = result.message || "Reserva excluída; senha liberada.";
+                  await fetchReservations();
+                } catch (error) { window.alert(error instanceof Error ? error.message : "Não foi possível excluir a reserva."); deleteButton.disabled = false; }
+              });
+              actionGroup.append(deleteButton);
+            }
+            actions.append(actionGroup);
           }
           tr.append(actions); tbody.append(tr);
         }
@@ -941,10 +951,8 @@ function showTeamSession(role) {
 }
 
 teamAccessToggle?.addEventListener("click", () => {
-  const willOpen = teamAccess?.hidden ?? true;
-  if (teamAccess) teamAccess.hidden = !willOpen;
-  teamAccessToggle.setAttribute("aria-expanded", String(willOpen));
-  if (willOpen) document.getElementById("team-email")?.focus();
+  showPortalView("admin");
+  if (teamLoginForm && !teamLoginForm.hidden) document.getElementById("team-email")?.focus();
 });
 
 teamLoginForm?.addEventListener("submit", async (event) => {
