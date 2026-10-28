@@ -25,6 +25,9 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage();
   let giraPayload = null;
+  let ordinaryPayload = null;
+  let adminActionPayloads = [];
+  let reservationDeleted = false;
   await page.route("https://emwnytvlbpgiwqswojze.supabase.co/**", async (route) => {
     const request = route.request();
     const requestUrl = new URL(request.url());
@@ -41,7 +44,19 @@ try {
       return json([{ mensagem_publica: "Mensagem de teste", mensagem_confirmacao: "Confirmação de teste", cor_primaria: "#17131e", cor_destaque: "#c9a86a", limite_alerta_vagas: 5 }]);
     }
     if (requestUrl.pathname === "/functions/v1/listar-reservas") {
-      return json({ success: true, role: "admin", data: [], giras: [], total: 0, page: 1, page_size: 25 });
+      const giras = [{ id: "123e4567-e89b-12d3-a456-426614174000", titulo: "Gira de teste", data_gira: "2027-01-15", limite_vagas: 20, tipo_gira: "Caboclos", ativa: true, status: "publicada" }];
+      const data = reservationDeleted ? [] : [{ id: "323e4567-e89b-12d3-a456-426614174000", senha_original: "7", senha_numero: 7, nome_completo: "Pessoa Teste", telefone: null, email: null, data_nascimento: null, retorno: null, medium_nome: null, preferencial: false, tipo_preferencial: null, status: "ativa", gira: giras[0] }];
+      return json({ success: true, role: "admin", data, giras, total: data.length, page: 1, page_size: 25 });
+    }
+    if (requestUrl.pathname === "/functions/v1/admin-criar-reserva") {
+      ordinaryPayload = JSON.parse(request.postData() || "{}");
+      return json({ success: true, message: "Reserva administrativa registrada.", reservation_id: "423e4567-e89b-12d3-a456-426614174000", senha: 8 });
+    }
+    if (requestUrl.pathname === "/functions/v1/admin-reservas") {
+      const payload = JSON.parse(request.postData() || "{}");
+      adminActionPayloads.push(payload);
+      if (payload.action === "delete") reservationDeleted = true;
+      return json({ success: true, message: payload.action === "delete" ? "Reserva excluída; senha liberada." : "Retorno atualizado e auditado." });
     }
     if (requestUrl.pathname === "/functions/v1/admin-giras") {
       giraPayload = JSON.parse(request.postData() || "{}");
@@ -99,6 +114,24 @@ try {
   assert.equal(await page.locator("#new-gira-capacity").getAttribute("type"), "number");
   assert.equal(await page.locator("#new-gira-capacity").getAttribute("min"), "1");
   assert.equal(await page.locator(".admin-section").count(), 4, "As funções administrativas devem aparecer agrupadas em quatro áreas.");
+  await page.locator("summary", { hasText: "Operações administrativas" }).click();
+  assert.equal(await page.locator("#ordinary-gira").getAttribute("required"), "", "A gira deve ser obrigatória no cadastro comum.");
+  for (const selector of ["#ordinary-name", "#ordinary-dob", "#ordinary-phone", "#ordinary-email", "#ordinary-first-time", "#ordinary-preferential", "#ordinary-return", "#ordinary-medium"]) {
+    assert.equal(await page.locator(selector).getAttribute("required"), null, selector + " deve ser opcional.");
+  }
+  await page.locator("#ordinary-gira").selectOption("123e4567-e89b-12d3-a456-426614174000");
+  await page.getByRole("button", { name: "Registrar reserva" }).click();
+  await page.getByText("Reserva administrativa registrada. Senha: 8").waitFor();
+  assert.equal(ordinaryPayload.gira_id, "123e4567-e89b-12d3-a456-426614174000");
+  for (const key of ["nome_completo", "data_nascimento", "telefone", "email", "primeira_vez", "retorno", "medium_nome"]) assert.equal(ordinaryPayload[key], null, key + " deve ser opcional vazio.");
+  await page.getByRole("button", { name: "Salvar retorno" }).click();
+  await page.getByText("Retorno atualizado e auditado.").waitFor();
+  assert.equal(adminActionPayloads[0].action, "update_return");
+  await page.evaluate(() => { window.prompt = () => "Teste de exclusão em homologação"; window.confirm = () => true; });
+  await page.getByRole("button", { name: "Excluir reserva" }).click();
+  await page.getByText("Reserva excluída; senha liberada.").waitFor();
+  assert.equal(adminActionPayloads[1].action, "delete");
+  assert.equal(adminActionPayloads[1].reservation_id, "323e4567-e89b-12d3-a456-426614174000");
   await page.locator("#new-gira-title").fill("Gira de teste");
   await page.locator("#new-gira-date").fill("2027-01-15");
   await page.locator("#new-gira-type").fill("Caboclos");
@@ -107,7 +140,7 @@ try {
   await page.getByText("Gira cadastrada e publicada com 12 senhas disponíveis.").waitFor();
   assert.deepEqual(giraPayload, { titulo: "Gira de teste", data_gira: "2027-01-15", tipo_gira: "Caboclos", limite_vagas: 12 });
 
-  console.log("OK código local de homologação: formulário público ativo; envio sem Turnstile bloqueado; admin autenticado vê e envia cadastro de gira com capacidade; chamadas administrativas mockadas.");
+  console.log("OK homologação local: Turnstile bloqueia envio público sem token; cadastro comum exige somente gira; edição de retorno e exclusão são enviadas ao endpoint administrativo mockado.");
 } finally {
   await browser.close();
   await new Promise((resolveClose) => server.close(resolveClose));
