@@ -9,6 +9,7 @@ const SUPABASE_PUBLIC_KEY = "sb_publishable_gKuJbxS6UBnsodjgdasDIQ_G2k_FL31";
 const configMessage = document.getElementById("config-message");
 const girasList = document.getElementById("giras-list");
 const reservationForm = document.getElementById("reservation-form");
+const reservationPanel = document.getElementById("reservation-panel");
 const turnstileStatus = document.getElementById("turnstile-status");
 let publicPortalSettings = { mensagem_confirmacao: "Solicitação recebida com sucesso.", limite_alerta_vagas: 5 };
 
@@ -138,7 +139,7 @@ async function loadPublishedGiras() {
           metric.vagas_restantes + " vaga(s) restante(s)") + " · " + metric.ocupacao_percentual + "% ocupadas"
         : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
       const vacancyClass = metric && metric.poucas_vagas ? "gira-vacancies low-vacancy" : "gira-vacancies";
-      return '<article class="gira-card" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-label="Selecionar ' + escapeHtml(gira.titulo) + '"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
+      return '<article class="gira-card" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-label="Selecionar ' + escapeHtml(gira.titulo) + ' e abrir o formulário"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
         '<p class="' + vacancyClass + '">' + escapeHtml(vacancyText) + '</p>' +
@@ -150,13 +151,16 @@ async function loadPublishedGiras() {
       const giraId = card?.dataset?.giraId;
       if (!giraId || !Array.from(eventSelect.options).some(option => option.value === giraId && !option.disabled)) return;
       eventSelect.value = giraId;
+      if (reservationPanel) reservationPanel.hidden = false;
       girasList.querySelectorAll(".gira-card").forEach(item => {
         const selected = item === card;
         item.classList.toggle("selected", selected);
         item.setAttribute("aria-pressed", String(selected));
+        item.setAttribute("aria-expanded", String(selected));
       });
       document.getElementById("reservation-title")?.scrollIntoView({ behavior: "smooth", block: "start" });
       eventSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      document.getElementById("full-name")?.focus({ preventScroll: true });
     };
     girasList.querySelectorAll(".gira-card").forEach(card => {
       card.addEventListener("click", () => selectGira(card));
@@ -168,10 +172,12 @@ async function loadPublishedGiras() {
       });
     });
     eventSelect?.addEventListener("change", () => {
+      if (reservationPanel) reservationPanel.hidden = !eventSelect.value;
       girasList.querySelectorAll(".gira-card").forEach(card => {
         const selected = card.dataset.giraId === eventSelect.value;
         card.classList.toggle("selected", selected);
         card.setAttribute("aria-pressed", String(selected));
+        card.setAttribute("aria-expanded", String(selected));
       });
     });
   } catch {
@@ -545,7 +551,7 @@ function showTeamSession(role) {
     } catch (error) { status.textContent = error instanceof Error ? error.message : "Backup não concluído."; }
     finally { backupButton.disabled = false; }
   });
-  exportBar.append(exportCsv, printList, backupButton);
+  exportBar.append(exportCsv, printList);
   let exportRows = [];
   exportCsv.addEventListener("click", () => {
     if (!exportRows.length) { status.textContent = "Não há registros nesta página para exportar."; return; }
@@ -694,7 +700,9 @@ function showTeamSession(role) {
       await loadPublishedGiras();
       await fetchReservations();
     } catch (error) {
-      out.textContent = error instanceof Error ? error.message : "Não foi possível cadastrar a gira.";
+      out.textContent = error instanceof TypeError
+        ? "Serviço administrativo indisponível. O cadastro não foi enviado; verifique a função de giras no ambiente de homologação."
+        : error instanceof Error ? error.message : "Não foi possível cadastrar a gira.";
     } finally { submit.disabled = false; }
   });
   settingsForm.addEventListener("submit", async event => {
@@ -759,8 +767,36 @@ function showTeamSession(role) {
     clearTeamSession(); setTeamStatus("Sessão encerrada neste navegador.");
     if (token) { try { await fetch(SUPABASE_URL + "/auth/v1/logout", { method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token } }); } catch { /* sessão local já encerrada */ } }
   });
-  if (role === "admin") teamSession.append(heading, detail, createGiraForm, overCapacityForm, settingsForm, importForm, restoreForm, filters, status, exportBar, results, pagination, logout);
-  else teamSession.append(heading, detail, filters, status, exportBar, results, pagination, logout);
+  const makeAdminSection = (title, expanded = false) => {
+    const section = document.createElement("details");
+    section.className = "admin-section";
+    section.open = expanded;
+    const summary = document.createElement("summary");
+    summary.textContent = title;
+    const content = document.createElement("div");
+    content.className = "admin-section-content";
+    section.append(summary, content);
+    return { section, content };
+  };
+  const giraSection = makeAdminSection("Agenda e cadastro de giras", true);
+  giraSection.content.append(createGiraForm);
+  const reservationSection = makeAdminSection("Reservas e consultas", true);
+  reservationSection.content.append(filters, status, exportBar, results, pagination);
+  if (role === "admin") {
+    const operationsSection = makeAdminSection("Operações administrativas");
+    operationsSection.content.append(overCapacityForm, importForm, restoreForm, backupButton);
+    const settingsSection = makeAdminSection("Configurações do portal");
+    settingsSection.content.append(settingsForm);
+    const dashboard = document.createElement("div");
+    dashboard.className = "admin-dashboard";
+    dashboard.append(giraSection.section, reservationSection.section, operationsSection.section, settingsSection.section);
+    teamSession.append(heading, detail, dashboard, logout);
+  } else {
+    const dashboard = document.createElement("div");
+    dashboard.className = "admin-dashboard";
+    dashboard.append(reservationSection.section);
+    teamSession.append(heading, detail, dashboard, logout);
+  }
   teamSession.hidden = false;
   if (teamLoginForm) teamLoginForm.hidden = true;
   if (role === "admin") loadPortalSettings();
