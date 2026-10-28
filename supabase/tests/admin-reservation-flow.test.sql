@@ -28,6 +28,9 @@ declare
   v_restore_id uuid;
   v_backup jsonb;
   v_reserva uuid;
+  v_admin_reserva uuid;
+  v_admin_senha bigint;
+  v_admin_contador bigint;
   v_excedente uuid;
   v_new_gira uuid;
   v_count integer;
@@ -51,6 +54,34 @@ begin
       and entidade_id=v_new_gira::text and user_id=v_actor and detalhes->>'limite_vagas'='7') then
     raise exception 'Falha: cadastro da gira não foi auditado';
   end if;
+  -- Cadastro administrativo comum: somente gira obrigatória, depois edição de retorno e exclusão.
+  execute 'set local role service_role';
+  v_result := public.teu7vd_criar_reserva_painel(v_actor,v_new_gira,NULL,NULL,NULL,NULL,NULL,false,NULL,NULL,NULL,NULL);
+  execute 'reset role';
+  v_admin_reserva := (v_result->>'reservation_id')::uuid;
+  v_admin_senha := (v_result->>'senha')::bigint;
+  if v_result->>'success'<>'true' or v_admin_reserva is null or v_admin_senha is null then
+    raise exception 'Falha: cadastro administrativo comum com campos opcionais vazios';
+  end if;
+  execute 'set local role service_role';
+  if public.teu7vd_atualizar_retorno_reserva(v_admin_reserva,'Sim','Médium de teste',v_actor) is not true then
+    raise exception 'Falha: edição administrativa de retorno';
+  end if;
+  if public.teu7vd_excluir_reserva_v2(v_admin_reserva,'teste de liberação de senha',v_actor) is not true then
+    raise exception 'Falha: exclusão administrativa comum';
+  end if;
+  execute 'reset role';
+  if not exists(select 1 from public.reservas where id=v_admin_reserva and status='excluida' and retorno='Sim' and medium_nome='Médium de teste') then
+    raise exception 'Falha: reserva administrativa, retorno ou exclusão não persistiu';
+  end if;
+  select proxima_senha into v_admin_contador from public.contadores_senha where tipo_gira='__teste_nova_gira';
+  if v_admin_contador is distinct from v_admin_senha then
+    raise exception 'Falha: senha excluída não liberada para reutilização; senha=%, contador=%',v_admin_senha,v_admin_contador;
+  end if;
+  if not exists(select 1 from public.auditoria where acao='reserva_excluida' and entidade_id=v_admin_reserva::text and user_id=v_actor) then
+    raise exception 'Falha: exclusão administrativa comum sem auditoria';
+  end if;
+
   -- RPC de criação só pode ser chamada pelo papel confiável no teste.
   execute 'set local role service_role';
   v_result := public.teu7vd_criar_reserva(
