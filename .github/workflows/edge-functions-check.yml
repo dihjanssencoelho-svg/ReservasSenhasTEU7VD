@@ -71,6 +71,9 @@ jobs:
       - name: Verificar admin-configuracoes
         run: deno check supabase/functions/admin-configuracoes/index.ts
 
+      - name: Verificar admin-giras
+        run: deno check supabase/functions/admin-giras/index.ts
+
       - name: Verificar admin-backup
         run: deno check supabase/functions/admin-backup/index.ts
 
