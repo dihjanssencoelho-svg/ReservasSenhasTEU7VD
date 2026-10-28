@@ -245,7 +245,7 @@ reservationForm?.addEventListener("submit", async (event) => {
     });
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível concluir a reserva. Tente novamente.");
-    const firstName = value("full-name").split(/\\s+/).filter(Boolean)[0] || "consulente";
+    const firstName = value("full-name").split(/\s+/).filter(Boolean)[0] || "consulente";
     reservationForm.reset();
     turnstileTokenForHomologation = null;
     if (window.turnstile?.reset) window.turnstile.reset();
