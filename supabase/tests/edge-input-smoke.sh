@@ -47,5 +47,11 @@ request "admin-sem-token" "admin-reservas" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 401
 request "admin-token-invalido" "admin-reservas" "invalid.jwt.token" "$TEU7VD_ALLOWED_ORIGIN" '{"action":"cancel","reservation_id":"00000000-0000-4000-8000-000000000001"}' 401
 request "admin-origem-negada" "admin-reservas" "" "https://origem-nao-autorizada.invalid" '{}' 403
 
+# Novas funções administrativas: gateway JWT deve bloquear antes de qualquer leitura/gravação.
+for endpoint in admin-backup admin-import-reservas admin-restaurar-backup admin-configuracoes admin-giras admin-criar-excedente admin-criar-reserva; do
+  request "${endpoint}-sem-token" "$endpoint" "" "$TEU7VD_ALLOWED_ORIGIN" '{}' 401
+  request "${endpoint}-origem-negada" "$endpoint" "" "https://origem-nao-autorizada.invalid" '{}' 403
+done
+
 echo "Concluído: smoke tests HTTP não mutáveis passaram."
 echo "Use apenas em ambiente de homologação com funções já implantadas."
