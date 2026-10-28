@@ -28,7 +28,7 @@ export function validateReservationInput(body: ReservationPayload): string | nul
 
   if (name.length > 180 || email.length > 254 || phone.length > 32 ||
       phoneDigits.length < 10 || phoneDigits.length > 15 ||
-      (email !== "" && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) ||
+      (email !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) ||
       !validDob ||
       dob > new Date().toISOString().slice(0, 10) ||
       (typeof body.descricao_preferencial === "string" && body.descricao_preferencial.length > 300) ||
