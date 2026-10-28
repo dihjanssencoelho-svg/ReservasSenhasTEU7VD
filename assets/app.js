@@ -626,7 +626,9 @@ function showTeamSession(role) {
       '<div><span>Nome do consulente</span><strong>' + escapeHtml(item.nome_completo || "Não informado") + '</strong></div>' +
       '<div><span>Data de nascimento</span><strong>' + escapeHtml(item.data_nascimento ? formatDate(item.data_nascimento) : "Não informada") + '</strong></div>' +
       '<div><span>Telefone</span><strong>' + escapeHtml(item.telefone || "Não informado") + '</strong></div>' +
-      '<div><span>E-mail</span><strong>' + escapeHtml(item.email || "Não informado") + '</strong></div></div>' +
+      '<div><span>E-mail</span><strong>' + escapeHtml(item.email || "Não informado") + '</strong></div>' +
+      '<div><span>Primeira vez?</span><strong>' + escapeHtml(item.primeira_vez || "Não informado") + '</strong></div>' +
+      '<div><span>Atendimento preferencial</span><strong>' + escapeHtml(item.preferencial ? (item.tipo_preferencial || "Sim") : "Não") + '</strong></div></div>' +
       '<form class="reservation-editor-form"><label for="editor-return">Há retorno com médium?</label><select id="editor-return" name="retorno"><option value="Não">Não</option><option value="Sim">Sim</option></select>' +
       '<div class="editor-medium-field" hidden><label for="editor-medium">Nome do médium</label><input id="editor-medium" name="medium_nome" maxlength="180" placeholder="Digite o nome do médium"></div>' +
       '<p class="small muted editor-status" role="status" aria-live="polite"></p><div class="editor-actions"><button type="button" class="secondary-button editor-cancel">Cancelar</button><button type="submit" class="editor-save">Salvar alterações</button></div></form>';
@@ -762,7 +764,7 @@ function showTeamSession(role) {
             }
             actions.append(actionGroup);
           }
-          tr.append(actions); tbody.append(tr);
+          if (role === "admin") tr.append(actions); tbody.append(tr);
         }
         table.append(thead, tbody);
         const scroll = document.createElement("div"); scroll.className = "admin-table-scroll"; scroll.append(table); results.append(scroll);
