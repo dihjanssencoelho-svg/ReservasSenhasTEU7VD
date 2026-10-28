@@ -27,8 +27,17 @@ const validDate = (v: unknown) => {
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get("origin");
   const allowed = expectedOrigin();
-  if (req.method === "OPTIONS") return !allowed || origin !== allowed
-    ? new Response(null, { status: 403 }) : reply(204, {}, origin);
+  if (req.method === "OPTIONS") {
+    if (!allowed || origin !== allowed) return new Response(null, { status: 403 });
+    const headers = new Headers({
+      "Cache-Control": "no-store",
+      "Vary": "Origin",
+      "Access-Control-Allow-Headers": "authorization, apikey, content-type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+    });
+    headers.set("Access-Control-Allow-Origin", origin);
+    return new Response(null, { status: 204, headers });
+  }
   if (req.method !== "POST") return reply(405, { success: false, message: "Método não permitido." }, origin);
   if (!allowed || origin !== allowed) return reply(403, { success: false, message: "Origem não autorizada." }, origin);
   const match = /^Bearer\s+(.+)$/i.exec(req.headers.get("authorization") ?? "");
