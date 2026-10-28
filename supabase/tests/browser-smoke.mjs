@@ -45,7 +45,8 @@ try {
     }
     if (requestUrl.pathname === "/functions/v1/listar-reservas") {
       const giras = [{ id: "123e4567-e89b-12d3-a456-426614174000", titulo: "Gira de teste", data_gira: "2027-01-15", limite_vagas: 20, tipo_gira: "Caboclos", ativa: true, status: "publicada" }];
-      const data = reservationDeleted ? [] : [{ id: "323e4567-e89b-12d3-a456-426614174000", senha_original: "7", senha_numero: 7, nome_completo: "Pessoa Teste", telefone: null, email: null, data_nascimento: null, retorno: null, medium_nome: null, preferencial: false, tipo_preferencial: null, status: "ativa", gira: giras[0] }];
+      const savedReturn = adminActionPayloads.find((x) => x.action === "update_return");
+      const data = reservationDeleted ? [] : [{ id: "323e4567-e89b-12d3-a456-426614174000", senha_original: "7", senha_numero: 7, nome_completo: "Pessoa Teste", telefone: null, email: null, data_nascimento: null, retorno: savedReturn?.retorno || null, medium_nome: savedReturn?.medium_nome || null, preferencial: false, tipo_preferencial: null, status: "ativa", gira: giras[0] }];
       return json({ success: true, role: "admin", data, giras, total: data.length, page: 1, page_size: 25 });
     }
     if (requestUrl.pathname === "/functions/v1/admin-criar-reserva") {
@@ -124,11 +125,21 @@ try {
   await page.getByText("Reserva administrativa registrada. Senha: 8").waitFor();
   assert.equal(ordinaryPayload.gira_id, "123e4567-e89b-12d3-a456-426614174000");
   for (const key of ["nome_completo", "data_nascimento", "telefone", "email", "primeira_vez", "retorno", "medium_nome"]) assert.equal(ordinaryPayload[key], null, key + " deve ser opcional vazio.");
-  await page.getByRole("button", { name: "Salvar retorno" }).click();
-  await page.getByText("Retorno atualizado e auditado.").waitFor();
+  await page.getByRole("button", { name: /Editar reserva 7/ }).click();
+  const editor = page.getByRole("dialog", { name: "Editar retorno" });
+  assert.equal(await editor.locator("#editor-return").inputValue(), "Não");
+  assert.equal(await editor.locator(".editor-medium-field").isHidden(), true);
+  await editor.locator("#editor-return").selectOption("Sim");
+  assert.equal(await editor.locator(".editor-medium-field").isVisible(), true);
+  await editor.locator("#editor-medium").fill("Médium de teste");
+  await editor.getByRole("button", { name: "Salvar alterações" }).click();
+  await editor.waitFor({ state: "detached" });
   assert.equal(adminActionPayloads[0].action, "update_return");
+  assert.equal(adminActionPayloads[0].retorno, "Sim");
+  assert.equal(adminActionPayloads[0].medium_nome, "Médium de teste");
+  await page.getByText("Sim · Médium de teste").waitFor();
   await page.evaluate(() => { window.prompt = () => "Teste de exclusão em homologação"; window.confirm = () => true; });
-  await page.getByRole("button", { name: "Excluir reserva" }).click();
+  await page.locator(".delete-action").click();
   await page.getByText("Nenhuma reserva encontrada").waitFor();
   assert.equal(adminActionPayloads[1].action, "delete");
   assert.equal(adminActionPayloads[1].reservation_id, "323e4567-e89b-12d3-a456-426614174000");
