@@ -2,7 +2,7 @@ export type ReservationPayload = Record<string, unknown>;
 
 const ALLOWED_FIELDS = new Set([
   "gira_id", "nome_completo", "data_nascimento", "telefone", "email",
-  "primeira_vez", "preferencial", "tipo_preferencial", "descricao_preferencial", "retorno", "medium_nome",
+  "primeira_vez", "preferencial", "tipo_preferencial", "descricao_preferencial",
   "turnstile_token",
 ]);
 const PREFERENTIAL_TYPES = ["Gestante", "Idoso", "Criança de Colo", "PCD", "Outro"];
@@ -13,19 +13,17 @@ export function validateReservationInput(body: ReservationPayload): string | nul
     return "Campos não reconhecidos.";
   }
 
-  const required = ["gira_id", "nome_completo", "data_nascimento", "telefone", "email", "primeira_vez", "turnstile_token"];
+  const required = ["gira_id", "nome_completo", "data_nascimento", "telefone", "primeira_vez", "turnstile_token"];
   if (required.some((key) => typeof body[key] !== "string" || !(body[key] as string).trim())) {
     return "Preencha os campos obrigatórios.";
   }
 
   const name = (body.nome_completo as string).trim();
-  const email = (body.email as string).trim();
+  const email = typeof body.email === "string" ? body.email.trim() : "";
   const phone = (body.telefone as string).trim();
   const dob = body.data_nascimento as string;
   const parsedDob = /^\d{4}-\d{2}-\d{2}$/.test(dob) ? new Date(dob + "T00:00:00.000Z") : null;
   const validDob = parsedDob !== null && !Number.isNaN(parsedDob.getTime()) && parsedDob.toISOString().slice(0, 10) === dob;
-  const retorno = body.retorno == null ? "" : body.retorno;
-  const mediumNome = body.medium_nome == null ? "" : body.medium_nome;
   const phoneDigits = phone.replace(/\D/g, "");
 
   if (name.length > 180 || email.length > 254 || phone.length > 32 ||
@@ -36,10 +34,6 @@ export function validateReservationInput(body: ReservationPayload): string | nul
       (typeof body.descricao_preferencial === "string" && body.descricao_preferencial.length > 300) ||
       !UUID_PATTERN.test(body.gira_id as string) ||
       !["Sim", "Não"].includes(body.primeira_vez as string) ||
-      typeof retorno !== "string" ||
-      (retorno !== "" && !["Sim", "Não"].includes(retorno)) ||
-      typeof mediumNome !== "string" || mediumNome.length > 180 ||
-      (retorno !== "Sim" && mediumNome.trim() !== "") ||
       (body.tipo_preferencial != null && typeof body.tipo_preferencial !== "string") ||
       (body.descricao_preferencial != null && typeof body.descricao_preferencial !== "string")) {
     return "Confira os dados informados.";
