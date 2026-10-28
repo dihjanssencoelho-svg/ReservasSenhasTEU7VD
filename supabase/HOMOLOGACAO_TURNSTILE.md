@@ -112,3 +112,37 @@ Este bloco prevalece sobre registros históricos anteriores que descrevem Pages 
 **Próximo bloqueio de homologação:** os testes de listagem por papéis (admin/gestor/operador/sem perfil) exigem JWTs de contas artificiais específicas. O script `security-smoke.sh` não foi executado por falta de evidência de que esses tokens de homologação estejam configurados no runner. Não inserir tokens reais no repositório. Testes positivos que criem/cancelem/reabram/excluam reservas continuam pendentes de ambiente artificial isolado e autorização explícita.
 
 | 26/10/2026 | Revisão read-only do banco Supabase | APROVADO COM RESSALVA | Consulta somente leitura aos catálogos PostgreSQL do projeto. RLS habilitado em `giras`, `reservas`, `perfis_admin` e `auditoria`. `anon` não possui SELECT em `perfis_admin`; `reservas` e `auditoria` não exibem privilégios diretos para `anon`/ `authenticated`; RPCs de reserva/admin não permitem EXECUTE para esses papéis e permanecem executáveis por `service_role`. Políticas atuais: agenda publicada visível ao público; perfil próprio para usuário autenticado; listagem de reservas e auditoria restrita a admin ativo. Ressalva: `relforcerowsecurity=false` nas tabelas (RLS habilitado, mas não FORCE); avaliar necessidade de FORCE conforme funções SECURITY DEFINER/owner e política operacional. Nenhum dado pessoal foi consultado e nenhuma alteração foi executada.
+
+## Registro incremental — 28/10/2026 — implantação administrativa controlada
+
+### Edge Functions implantadas em homologação
+
+Projeto Supabase: `emwnytvlbpgiwqswojze`. Foram implantadas/atualizadas somente no projeto de homologação, com `verify_jwt=true`:
+
+| Função | Versão após implantação | Estado |
+|---|---:|---|
+| `admin-backup` | 1 | ACTIVE |
+| `admin-import-reservas` | 1 | ACTIVE |
+| `admin-restaurar-backup` | 1 | ACTIVE |
+| `admin-configuracoes` | 2 | ACTIVE |
+| `admin-giras` | 2 | ACTIVE |
+| `admin-criar-excedente` | 3 | ACTIVE |
+
+As funções `admin-criar-reserva`, `admin-reservas`, `listar-reservas` e `criar-reserva` já estavam ativas. Nenhuma função foi implantada no projeto Pontos TEU7VD nem em produção.
+
+### Evidências sem mutação de reservas reais
+
+- **CI/HTTP:** run [40769011862](https://github.com/dihjanssencoelho-svg/ReservasSenhasTEU7VD/actions/runs/40769011862) concluiu `success`; jobs de verificação estática, integração local com rollback, smoke HTTP sem mutações e smoke do navegador passaram. Foram adicionados testes negativos sem token para as funções administrativas.
+- **Autorização SQL:** `anon` e `authenticated` não possuem EXECUTE nas RPCs de prévia de importação/restauração; `service_role` possui EXECUTE.
+- **Importação:** a prévia de uma linha artificial com status `excluida` retornou sucesso e criou lote de staging. Nenhuma reserva foi inserida por essa prévia.
+- **Restauração:** a prévia de backup artificial vazio foi aprovada; a aplicação do lote vazio foi concluída com zero giras, zero reservas e zero contadores restaurados. A auditoria registra o ator, motivo e modo `merge_sem_exclusao`. A contagem de reservas permaneceu em 2, sem incremento.
+- **Auditoria de retorno:** a edição da reserva artificial anterior deixou evento de auditoria com `user_id` igual a `detalhes.actor_id`; a fixture foi excluída logicamente e a gira de teste desativada.
+
+### Bloqueios ainda não aprovados
+
+1. O smoke HTTP cobre requisições negativas e bloqueio por ausência de token; **não comprova o fluxo positivo do Turnstile com token real válido** nem a criação ponta a ponta no navegador.
+2. A importação foi validada em prévia, mas **a aplicação positiva de uma linha artificial não foi executada**. Não considerar importação plenamente homologada.
+3. O backup completo via endpoint autenticado ainda não foi executado com JWT de administrador artificial; o teste de restauração foi limitado a um backup vazio e seguro.
+4. O ensaio de reversão operacional do frontend/backend não foi executado. O código de restauração do banco não substitui um plano de rollback de implantação.
+5. Não promover a `main` nem liberar reservas públicas até que os pontos acima sejam comprovados. Não usar token pessoal, segredo de produção ou dados reais como substituto.
+
