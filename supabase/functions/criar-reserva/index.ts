@@ -76,7 +76,7 @@ Deno.serve(async (req: Request) => {
   const name = (body.nome_completo as string).trim();
   const dob = body.data_nascimento as string;
   const phone = (body.telefone as string).trim();
-  const email = (body.email as string).trim();
+  const email = typeof body.email === "string" ? body.email.trim() : "";
   const retorno = body.retorno == null ? "" : body.retorno as string;
   const mediumNome = body.medium_nome == null ? "" : body.medium_nome as string;
 
