@@ -55,7 +55,7 @@ Deno.serve(async (req: Request) => {
   } catch {
     return respond(400, { success: false, message: "Solicitação inválida." }, origin);
   }
-  const allowedFields = new Set(["action", "reservation_id", "reason"]);
+  const allowedFields = new Set(["action", "reservation_id", "reason", "retorno", "medium_nome"]);
   if (Object.keys(body).some((key) => !allowedFields.has(key))) {
     return respond(400, { success: false, message: "Campos não reconhecidos." }, origin);
   }
@@ -63,6 +63,7 @@ Deno.serve(async (req: Request) => {
     cancel: "teu7vd_cancelar_reserva_v2",
     reopen: "teu7vd_reabrir_reserva_v2",
     delete: "teu7vd_excluir_reserva_v2",
+    update_return: "teu7vd_atualizar_retorno_reserva",
   } as const;
   if (typeof body.action !== "string" || !Object.hasOwn(actions, body.action)) {
     return respond(400, { success: false, message: "Ação inválida." }, origin);
@@ -72,11 +73,19 @@ Deno.serve(async (req: Request) => {
     return respond(400, { success: false, message: "Identificador de reserva inválido." }, origin);
   }
   const reason = typeof body.reason === "string" ? body.reason.trim() : "";
-  if (body.action !== "cancel" && (reason.length < 5 || reason.length > 500)) {
+  if (body.action !== "cancel" && body.action !== "update_return" && (reason.length < 5 || reason.length > 500)) {
     return respond(400, { success: false, message: "Informe um motivo entre 5 e 500 caracteres." }, origin);
   }
   if (body.action === "cancel" && reason.length > 500) {
     return respond(400, { success: false, message: "O motivo deve ter até 500 caracteres." }, origin);
+  }
+
+  if (body.action === "update_return") {
+    if (typeof body.retorno !== "string" || !["", "Sim", "Não"].includes(body.retorno) ||
+        (body.medium_nome != null && (typeof body.medium_nome !== "string" || body.medium_nome.length > 180)) ||
+        (body.retorno !== "Sim" && String(body.medium_nome ?? "").trim() !== "")) {
+      return respond(400, { success: false, message: "Confira o retorno e o nome do médium." }, origin);
+    }
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -99,11 +108,10 @@ Deno.serve(async (req: Request) => {
   }
 
   const rpc = actions[body.action as keyof typeof actions];
-  const { data: changed, error } = await trusted.rpc(rpc, {
-    p_reserva_id: body.reservation_id,
-    p_motivo: reason || null,
-    p_actor_id: userData.user.id,
-  });
+  const rpcArgs = body.action === "update_return"
+    ? { p_reserva_id: body.reservation_id, p_retorno: body.retorno, p_medium_nome: body.medium_nome ?? "", p_actor_id: userData.user.id }
+    : { p_reserva_id: body.reservation_id, p_motivo: reason || null, p_actor_id: userData.user.id };
+  const { data: changed, error } = await trusted.rpc(rpc, rpcArgs);
   if (error || changed !== true) {
     // Do not return SQL, schema, or implementation details to the browser.
     return respond(400, { success: false, message: "A operação não foi concluída. Confira o status da reserva e tente novamente." }, origin);
