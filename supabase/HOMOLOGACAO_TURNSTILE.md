@@ -156,3 +156,14 @@ As funções `admin-criar-reserva`, `admin-reservas`, `listar-reservas` e `criar
 - **Turnstile:** o código de `criar-reserva` falha de forma fechada quando o segredo está ausente, quando o Siteverify falha ou quando o provedor não retorna `success=true`. Nenhum token positivo real de teste foi obtido nesta execução; não se simulou nem se falsificou resposta positiva.
 - **Reversão:** o workflow local confirma rollback de integração local, mas não houve reversão real de uma implantação Supabase/Pages. Não declarar rollback operacional completo.
 - **Decisão:** homologação continua **BLOQUEADA PARA LIBERAÇÃO**. Próximas ações dependem de sessão JWT de uma conta administrativa artificial para testar os endpoints autenticados, token Turnstile positivo oficialmente emitido para o hostname de teste e ensaio controlado de reversão de implantação. Não promover `main`, não mesclar PR #1 e não habilitar o formulário público enquanto esses gates não passarem.
+
+
+## Registro incremental — 29/10/2026 — reorganização do painel e importação
+
+- Removido da interface o formulário de cadastro administrativo comum; permanece apenas o cadastro administrativo acima da capacidade na seção Operações administrativas.
+- Reservas e consultas agora contém apenas filtros, resultados e ações de consulta/exportação. A consulta padrão da Edge Function `listar-reservas` exclui registros com status `excluida`; para auditoria, o filtro explícito de status excluída continua disponível.
+- Criadas áreas distintas para Importação de planilhas, Operações administrativas, Backup e restauração e Configurações do portal, com texto explicativo de finalidade.
+- Importação da interface: suporte a CSV e Excel via biblioteca SheetJS; aliases para cabeçalhos exportados e para os cabeçalhos solicitados (Nome, Nascimento, Telefone, E-mail, 1ª Vez, Retorno, Médium, Pref., Senha). Se não houver gira_id/Gira, o administrador deve selecionar a gira de destino; não se atribui gira por suposição. Se o arquivo não trouxer status, a importação assume `ativa`, sujeita à validação de capacidade e duplicidade no backend. A prévia permanece obrigatória antes da aplicação.
+- Teste de navegador atualizado para verificar remoção do cadastro comum, separação das áreas, suporte de extensão CSV/Excel e explicação da aba Configurações.
+- A validação automática de navegador falhou em execuções intermediárias após mudanças de layout; a correção de teste foi enviada e a execução da revisão atual deve ser confirmada antes de aprovar esta parte. O Pages build da revisão atual está em andamento.
+- Não foi feita promoção para `main`, merge de PR nem alteração no projeto de produção.
