@@ -301,5 +301,16 @@ jobs:
           test "$logo_signature" = "ffd8ff"
           echo "OK: formulário, Turnstile e imagem oficial JPEG acessíveis na versão publicada. Nenhuma reserva foi enviada."
 
-      - name: Validar sintaxe do teste Turnstile interativo
-        run: node --check supabase/tests/turnstile-live-smoke.mjs
+      - name: Validar sintaxe dos testes de ponta a ponta
+        run: |
+          node --check supabase/tests/turnstile-live-smoke.mjs
+          node --check supabase/tests/admin-auth-live-smoke.mjs
+
+      - name: Teste HTTP positivo de administrador sem mutação (opcional)
+        env:
+          SUPABASE_URL: https://emwnytvlbpgiwqswojze.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_gKuJbxS6UBnsodjgdasDIQ_G2k_FL31
+          TEU7VD_ALLOWED_ORIGIN: https://dihjanssencoelho-svg.github.io
+          TEU7VD_TEST_ADMIN_EMAIL: ${{ secrets.TEU7VD_TEST_ADMIN_EMAIL }}
+          TEU7VD_TEST_ADMIN_PASSWORD: ${{ secrets.TEU7VD_TEST_ADMIN_PASSWORD }}
+        run: node supabase/tests/admin-auth-live-smoke.mjs
