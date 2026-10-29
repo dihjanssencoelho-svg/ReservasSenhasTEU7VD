@@ -1,0 +1,1 @@
+revoke all on function public.teu7vd_is_admin() from public, anon, authenticated;

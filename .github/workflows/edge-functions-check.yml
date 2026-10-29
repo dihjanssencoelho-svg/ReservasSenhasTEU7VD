@@ -1,0 +1,316 @@
+name: Validar Edge Functions TEU7VD
+
+on:
+  push:
+    branches:
+      - preparacao-homologacao
+  pull_request:
+    branches:
+      - main
+      - preparacao-homologacao
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Serializa integrações e evita cancelar uma homologação em andamento.
+# PRs diferentes usam grupos próprios; push da mesma branch aguarda em fila.
+concurrency:
+  group: teu7vd-homologacao-${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deno-check:
+    name: Verificação estática Deno
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Instalar Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Testar contrato de validação de reservas
+        run: deno test supabase/tests/reservation-validation.test.ts
+
+      - name: Validar sintaxe do frontend
+        run: node --check assets/app.js
+
+      - name: Garantir que o envio público continua bloqueado
+        shell: bash
+        run: |
+          grep -q 'id="reservation-submit" type="submit">Solicitar reserva</button>' index.html
+          grep -q 'functions/v1/criar-reserva' assets/app.js
+          grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' index.html
+          grep -q 'if (!turnstileTokenForHomologation)' assets/app.js
+
+      - name: Verificar contrato de regras e índice ant duplicidade
+        run: |
+          grep -q 'reservas_identidade_gira_unique' supabase/migrations/20261027140000_teu7vd_enforce_duplicate_identity.sql
+          grep -q 'formulário dentro do painel administrativo' supabase/PLANO_REGRAS_HOMOLOGACAO.md
+          grep -q 'rollback' supabase/PLANO_REGRAS_HOMOLOGACAO.md
+
+      - name: Validar sintaxe dos smoke tests HTTP
+        run: bash -n supabase/tests/edge-input-smoke.sh supabase/tests/security-smoke.sh supabase/tests/reservation-concurrency-smoke.sh
+
+      - name: Verificar criar-reserva
+        run: deno check supabase/functions/criar-reserva/index.ts
+
+      - name: Verificar listar-reservas
+        run: deno check supabase/functions/listar-reservas/index.ts
+
+      - name: Verificar admin-reservas
+        run: deno check supabase/functions/admin-reservas/index.ts
+
+      - name: Verificar admin-criar-reserva
+        run: deno check supabase/functions/admin-criar-reserva/index.ts
+
+      - name: Verificar admin-criar-excedente
+        run: deno check supabase/functions/admin-criar-excedente/index.ts
+
+      - name: Verificar admin-configuracoes
+        run: deno check supabase/functions/admin-configuracoes/index.ts
+
+      - name: Verificar admin-giras
+        run: deno check supabase/functions/admin-giras/index.ts
+
+      - name: Verificar admin-backup
+        run: deno check supabase/functions/admin-backup/index.ts
+
+      - name: Verificar admin-restaurar-backup
+        run: deno check supabase/functions/admin-restaurar-backup/index.ts
+
+      - name: Verificar admin-import-reservas
+        run: deno check supabase/functions/admin-import-reservas/index.ts
+
+  reservation-flow-integration:
+    # Executa também em PRs internos; PRs de forks não puxam imagens nem acessam o backend.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    name: Integração local de reservas (rollback)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SUPABASE_EXPERIMENTAL_STACK: "1"
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Instalar Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.121.0
+
+      - name: Iniciar Supabase local e aplicar migrações
+        run: |
+          # O runtime nativo evita os pulls do GHCR e preserva o banco local descartável.
+          started=false
+          for attempt in 1 2 3 4 5; do
+            echo "Inicialização local Supabase — tentativa $attempt/5"
+            if supabase start --runtime native; then
+              started=true
+              break
+            fi
+            if [ "$attempt" -lt 5 ]; then
+              supabase stop || true
+              delay=$((attempt * 20))
+              echo "Falha temporária ao preparar o runtime nativo; nova tentativa em ${delay}s."
+              sleep "$delay"
+            fi
+          done
+          if [ "$started" != "true" ]; then
+            echo "Supabase local não iniciou após 5 tentativas; verificar os downloads do runtime nativo."
+            exit 1
+          fi
+          supabase db reset
+
+      - name: Testar criação, duplicidade, capacidade, numeração, auditoria e rollback atômico
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/reservation-flow.test.sql
+
+      - name: Auditar RLS e privilégios mínimos no banco local
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          do $security$
+          declare t text; v_rls boolean;
+          begin
+            foreach t in array array['giras','reservas','perfis_admin','auditoria','contadores_senha'] loop
+              select c.relrowsecurity into v_rls
+              from pg_class c join pg_namespace n on n.oid=c.relnamespace
+              where n.nspname='public' and c.relname=t;
+              if coalesce(v_rls,false) is not true then
+                raise exception 'RLS desabilitado ou tabela ausente: public.%',t;
+              end if;
+            end loop;
+            if has_table_privilege('anon','public.reservas','SELECT')
+              or has_table_privilege('anon','public.reservas','INSERT')
+              or has_table_privilege('authenticated','public.reservas','SELECT')
+              or has_table_privilege('authenticated','public.reservas','INSERT')
+              or has_table_privilege('anon','public.auditoria','SELECT')
+              or has_table_privilege('authenticated','public.auditoria','SELECT')
+              or has_table_privilege('anon','public.contadores_senha','SELECT')
+              or has_table_privilege('authenticated','public.contadores_senha','SELECT') then
+              raise exception 'Privilégio direto indevido em reservas, auditoria ou contadores';
+            end if;
+            if has_table_privilege('anon','public.perfis_admin','SELECT') then
+              raise exception 'Papel anon pode consultar perfis_admin';
+            end if;
+            if has_table_privilege('anon','public.giras','INSERT')
+              or has_table_privilege('anon','public.giras','UPDATE')
+              or has_table_privilege('anon','public.giras','DELETE')
+              or has_table_privilege('authenticated','public.giras','INSERT')
+              or has_table_privilege('authenticated','public.giras','UPDATE')
+              or has_table_privilege('authenticated','public.giras','DELETE') then
+              raise exception 'Mutação direta de giras concedida a anon/authenticated';
+            end if;
+            if has_function_privilege('anon','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text,text)','EXECUTE')
+              or has_function_privilege('authenticated','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text,text)','EXECUTE') then
+              raise exception 'RPC de criação acessível diretamente a anon/authenticated';
+            end if;
+            if not has_function_privilege('service_role','public.teu7vd_criar_reserva(uuid,text,date,text,text,text,boolean,text,text,text,text)','EXECUTE') then
+              raise exception 'service_role sem EXECUTE na RPC de criação';
+            end if;
+            raise notice 'PASSOU: RLS ativo e privilégios diretos mínimos verificados';
+          end;
+          $security$;
+          SQL
+
+      - name: Verificar bloqueio das RPCs administrativas para authenticated
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -X -v ON_ERROR_STOP=1 <<'SQL'
+          do $privileges$
+          begin
+            if has_function_privilege('authenticated','public.teu7vd_cancelar_reserva(uuid,text)','EXECUTE')
+              or has_function_privilege('authenticated','public.teu7vd_excluir_reserva(uuid,text)','EXECUTE')
+              or has_function_privilege('authenticated','public.teu7vd_reabrir_reserva(uuid,text)','EXECUTE') then
+              raise exception 'Falha: uma RPC administrativa foi exposta a authenticated';
+            end if;
+          end;
+          $privileges$;
+          begin;
+          set local role authenticated;
+          do $guard$
+          begin
+            begin
+              perform public.teu7vd_cancelar_reserva('00000000-0000-4000-8000-000000000001'::uuid, 'teste sem admin');
+              raise exception 'Falha de segurança: cancelamento aceito sem perfil admin';
+            exception when sqlstate '42501' then
+              null;
+            end;
+            begin
+              perform public.teu7vd_excluir_reserva('00000000-0000-4000-8000-000000000001'::uuid, 'teste sem admin');
+              raise exception 'Falha de segurança: exclusão aceita sem perfil admin';
+            exception when sqlstate '42501' then
+              null;
+            end;
+            begin
+              perform public.teu7vd_reabrir_reserva('00000000-0000-4000-8000-000000000001'::uuid, 'teste sem admin');
+              raise exception 'Falha de segurança: reabertura aceita sem perfil admin';
+            exception when sqlstate '42501' then
+              null;
+            end;
+            raise notice 'PASSOU: authenticated não pode executar as RPCs administrativas';
+          end;
+          $guard$;
+          rollback;
+          SQL
+
+      - name: Testar fluxo administrativo positivo com fixtures locais e rollback
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/admin-reservation-flow.test.sql
+
+      - name: Testar concorrência de numeração e capacidade
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: |
+          for attempt in 1 2 3 4 5; do
+            echo "Execução de concorrência $attempt/5"
+            bash supabase/tests/reservation-concurrency-smoke.sh
+          done
+
+  runtime-smoke:
+    name: Smoke HTTP real sem mutações
+    # Casos negativos sem mutações podem rodar em PRs internos; forks não acessam o backend.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Executar testes negativos contra as Edge Functions implantadas
+        env:
+          SUPABASE_URL: https://emwnytvlbpgiwqswojze.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_gKuJbxS6UBnsodjgdasDIQ_G2k_FL31
+          TEU7VD_ALLOWED_ORIGIN: https://dihjanssencoelho-svg.github.io
+        run: bash supabase/tests/edge-input-smoke.sh
+
+  browser-smoke:
+    name: Smoke do portal no navegador
+    # PRs internos validam o HTML local e o formulário publicado; forks ficam isolados.
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Instalar Playwright e Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+
+      - name: Verificar código local de homologação no navegador
+        run: node supabase/tests/browser-smoke.mjs
+
+      - name: Confirmar formulário ativo na versão publicada do Pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://dihjanssencoelho-svg.github.io/ReservasSenhasTEU7VD/"
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 5 "$url" -o /tmp/teu7vd-public.html
+          grep -q 'id="reservation-submit" type="submit">Solicitar reserva</button>' /tmp/teu7vd-public.html
+          grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' /tmp/teu7vd-public.html
+          app_url="https://dihjanssencoelho-svg.github.io/ReservasSenhasTEU7VD/assets/app.js"
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$app_url" -o /tmp/teu7vd-public-app.js
+          if grep -Fq 'Cadastro administrativo comum' /tmp/teu7vd-public-app.js || grep -q 'ordinaryReservationForm' /tmp/teu7vd-public-app.js; then
+            echo "ERRO: a versão publicada ainda contém o cadastro administrativo comum."
+            exit 1
+          fi
+          grep -q 'Cadastro administrativo acima da capacidade' /tmp/teu7vd-public-app.js
+          echo "OK: o JavaScript publicado remove o cadastro comum e mantém o cadastro acima da capacidade."
+          logo_url="https://raw.githubusercontent.com/dihjanssencoelho-svg/siteTEU7VD/main/assets/logo-teu7vd.jpeg"
+          grep -Fq "$logo_url" /tmp/teu7vd-public.html
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$logo_url" -o /tmp/teu7vd-logo.jpeg
+          logo_signature="$(od -An -tx1 -N3 /tmp/teu7vd-logo.jpeg | tr -d ' \n')"
+          test "$logo_signature" = "ffd8ff"
+          echo "OK: formulário, Turnstile e imagem oficial JPEG acessíveis na versão publicada. Nenhuma reserva foi enviada."
+
+      - name: Validar sintaxe dos testes de ponta a ponta
+        run: |
+          node --check supabase/tests/turnstile-live-smoke.mjs
+          node --check supabase/tests/admin-auth-live-smoke.mjs
+
+      - name: Teste HTTP positivo de administrador sem mutação (opcional)
+        env:
+          SUPABASE_URL: https://emwnytvlbpgiwqswojze.supabase.co
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_gKuJbxS6UBnsodjgdasDIQ_G2k_FL31
+          TEU7VD_ALLOWED_ORIGIN: https://dihjanssencoelho-svg.github.io
+          TEU7VD_TEST_ADMIN_EMAIL: ${{ secrets.TEU7VD_TEST_ADMIN_EMAIL }}
+          TEU7VD_TEST_ADMIN_PASSWORD: ${{ secrets.TEU7VD_TEST_ADMIN_PASSWORD }}
+        run: node supabase/tests/admin-auth-live-smoke.mjs

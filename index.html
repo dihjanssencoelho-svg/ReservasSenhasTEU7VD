@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#8c2787">
+  <meta name="description" content="Portal independente de reservas de senhas do Templo Escola de Umbanda 7 Vibrações Divinas.">
+  <title>Reservas de Senhas | TEU7VD</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand-lockup" href="#reservation-title" aria-label="Reserva de vagas TEU7VD">
+      <span class="brand-emoji" aria-hidden="true">🙏</span>
+      <span class="brand-name">Reserva de Vagas</span>
+    </a>
+    <nav class="site-nav" aria-label="Navegação principal">
+      <button id="agenda-view-toggle" class="nav-link nav-link-active" type="button">Agenda</button>
+      <button id="team-access-toggle" class="nav-link nav-admin" type="button" aria-expanded="false" aria-controls="team-access">Painel Admin</button>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="intro hero-panel">
+      <img class="portal-logo" src="https://raw.githubusercontent.com/dihjanssencoelho-svg/siteTEU7VD/main/assets/logo-teu7vd.jpeg" alt="Logo oficial do Templo Escola de Umbanda 7 Vibrações Divinas" width="120" height="114">
+      <p class="eyebrow">Templo Escola de Umbanda 7 Vibrações Divinas</p>
+      <h2>Reserva de Vagas</h2>
+      <p class="hero-help">Os campos marcados com <strong>*</strong> são obrigatórios.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="giras-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Agenda de atendimento</p>
+          <h2 id="giras-title">♧ Selecione a data <span class="required-mark">*</span></h2>
+        </div>
+        <span class="section-symbol" aria-hidden="true">✦</span>
+      </div>
+      <div id="giras-list" class="empty-state">
+        <div class="calendar-icon" aria-hidden="true">▦</div>
+        <h3>Consultando agenda</h3>
+        <p>As giras publicadas serão carregadas automaticamente após validação da administração.</p>
+      </div>
+    </section>
+
+    <section id="reservation-panel" class="panel form-panel" aria-labelledby="reservation-title" hidden>
+      <p class="eyebrow">Cadastro de consulente</p>
+      <h2 id="reservation-title">♙ Dados pessoais</h2>
+      <p class="muted">Selecione uma data disponível e preencha seus dados para solicitar a senha. A confirmação depende da disponibilidade de vagas e da validação de segurança.</p>
+      <form id="reservation-form" autocomplete="off">
+        <label for="full-name">Nome completo <span class="required-mark">*</span></label>
+        <input id="full-name" name="nome_completo" required maxlength="180" autocomplete="name" placeholder="Seu nome completo">
+        <label for="event">Data selecionada <span class="required-mark">*</span></label>
+        <select id="event" name="gira_id" required>
+          <option value="">Carregando giras disponíveis…</option>
+        </select>
+        <label for="dob">Data de nascimento <span class="required-mark">*</span></label>
+        <input id="dob" name="data_nascimento" type="date" required autocomplete="bday">
+        <label for="phone">Telefone com DDD <span class="required-mark">*</span></label>
+        <input id="phone" name="telefone" type="tel" required maxlength="32" autocomplete="tel" placeholder="(11) 99999-9999">
+        <label for="email">E-mail (opcional)</label>
+        <input id="email" name="email" type="email" maxlength="254" autocomplete="email" placeholder="voce@exemplo.com">
+        <label for="first-time">É sua primeira vez? <span class="required-mark">*</span></label>
+        <select id="first-time" name="primeira_vez" required><option value="">Selecione</option><option value="Sim">Sim</option><option value="Não">Não</option></select>
+        <label for="preferential">Necessita de atendimento preferencial? <span class="required-mark">*</span></label>
+        <select id="preferential" name="preferencial" required><option value="">Selecione</option><option value="false">Não</option><option value="true">Sim</option></select>
+        <div id="preferential-details" hidden>
+          <label for="preferential-type">Tipo de atendimento preferencial</label>
+          <select id="preferential-type" name="tipo_preferencial"><option value="">Selecione</option><option>Gestante</option><option>Idoso</option><option>Criança de Colo</option><option>PCD</option><option>Outro</option></select>
+          <label for="preferential-description">Se selecionou “Outro”, descreva a necessidade</label>
+          <textarea id="preferential-description" name="descricao_preferencial" maxlength="300" rows="3"></textarea>
+        </div>
+        <div class="turnstile-wrap">
+          <p class="small muted">Conclua a verificação de segurança antes de enviar.</p>
+          <div class="cf-turnstile" data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-" data-callback="onTurnstileVerified" data-expired-callback="onTurnstileExpired" data-error-callback="onTurnstileError" data-theme="light"></div>
+          <p id="turnstile-status" class="small muted" role="status" aria-live="polite">A verificação é obrigatória para enviar a solicitação.</p>
+        </div>
+        <button id="reservation-submit" type="submit">Solicitar reserva</button>
+      </form>
+      <p id="config-message" class="small muted">Sua solicitação será enviada com segurança após validação dos dados e da verificação antirobô. A reserva só será confirmada se houver disponibilidade.</p>
+    </section>
+
+    <section class="privacy-note">
+      <p><strong>Privacidade:</strong> os dados informados serão usados exclusivamente para administrar esta solicitação de reserva. Não informe dados de terceiros sem autorização.</p>
+    </section>
+  </main>
+
+  <section class="container team-access-wrap" aria-labelledby="team-access-title" hidden>
+    <section id="team-access" class="panel team-access" hidden>
+      <p class="eyebrow">Área restrita</p>
+      <h2 id="team-access-title">Acesso da equipe TEU7VD</h2>
+      <p class="muted">Entre com sua conta institucional autorizada. Consulentes e contas sem perfil ativo não têm acesso ao painel.</p>
+      <form id="team-login-form" autocomplete="on">
+        <label for="team-email">E-mail</label>
+        <input id="team-email" name="username" type="email" autocomplete="username" required maxlength="254" placeholder="seu e-mail de acesso">
+        <label for="team-password">Senha</label>
+        <input id="team-password" name="password" type="password" autocomplete="current-password" required minlength="1" maxlength="256" placeholder="Sua senha">
+        <button id="team-login-submit" type="submit">Entrar</button>
+      </form>
+      <p id="team-login-status" class="small muted" role="status" aria-live="polite"></p>
+      <section id="team-session" class="team-session" hidden aria-live="polite"></section>
+    </section>
+  </section>
+
+  <footer class="site-footer">
+    <p><strong>TEU7VD</strong> · Templo Escola de Umbanda 7 Vibrações Divinas</p>
+    <p>Portal de reservas independente do site institucional.</p>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="./assets/app.js" defer></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+</body>
+</html>
