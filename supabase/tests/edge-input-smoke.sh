@@ -53,5 +53,27 @@ for endpoint in admin-backup admin-import-reservas admin-restaurar-backup admin-
   request "${endpoint}-origem-negada" "$endpoint" "" "https://origem-nao-autorizada.invalid" '{}' 403
 done
 
+# Verifica preflight CORS real em todos os endpoints publicados, incluindo o cadastro de excedente.
+# Não envia dados de negócio e não cria nem altera registros.
+preflight() {
+  local name="$1" endpoint="$2" origin="$3" expected="$4" status
+  status="$(curl -sS -o "$TMP/$name.json" -w '%{http_code}' "$BASE/$endpoint" \
+    -X OPTIONS \
+    -H "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+    -H "Origin: $origin" \
+    -H 'Access-Control-Request-Method: POST' \
+    -H 'Access-Control-Request-Headers: authorization, apikey, content-type')"
+  if [[ "$status" != "$expected" ]]; then
+    echo "FALHOU preflight $name: esperado HTTP $expected, recebido $status"
+    cat "$TMP/$name.json"
+    exit 1
+  fi
+  echo "OK preflight $name: HTTP $status"
+}
+for endpoint in criar-reserva listar-reservas admin-reservas admin-criar-reserva admin-criar-excedente admin-giras admin-configuracoes admin-backup admin-restaurar-backup admin-import-reservas; do
+  preflight "${endpoint}-preflight-allowed" "$endpoint" "$TEU7VD_ALLOWED_ORIGIN" 204
+  preflight "${endpoint}-preflight-denied" "$endpoint" "https://origem-nao-autorizada.invalid" 403
+done
+
 echo "Concluído: smoke tests HTTP não mutáveis passaram."
 echo "Use apenas em ambiente de homologação com funções já implantadas."
