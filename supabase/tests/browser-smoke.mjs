@@ -150,12 +150,17 @@ try {
   assert.equal(await page.locator(".admin-section").count(), 6, "O painel deve separar agenda, reservas, importação, excedente, backup/restauração e configurações.");
   assert.equal(await page.locator("#ordinary-gira").count(), 0, "Cadastro administrativo comum deve ter sido removido do painel.");
   assert.equal(await page.locator("#ordinary-name").count(), 0, "Campos do cadastro administrativo comum não devem aparecer.");
+  assert.equal((await page.locator(".admin-dashboard").innerText()).includes("Cadastro administrativo comum"), false, "A opção Cadastro administrativo comum não pode aparecer em nenhuma área do painel.");
+  await page.locator("summary", { hasText: "Reservas e consultas" }).click();
+  const reservationSectionText = await page.locator(".admin-section").filter({ has: page.locator("summary", { hasText: "Reservas e consultas" }) }).innerText();
+  assert.equal(reservationSectionText.includes("Cadastro administrativo comum"), false, "Reservas e consultas não deve exibir Cadastro administrativo comum.");
   await page.locator("summary", { hasText: "Importação de planilhas" }).click();
   const acceptedFormats = await page.locator("#import-csv-file").getAttribute("accept");
   assert.ok(acceptedFormats.includes(".xlsx") && acceptedFormats.includes(".xls") && acceptedFormats.includes(".csv"), "Importação deve aceitar CSV e Excel.");
   assert.equal(await page.locator("#import-apply").isDisabled(), true, "Aplicar importação deve iniciar bloqueado.");
   await page.locator("summary", { hasText: "Operações administrativas" }).click();
   assert.equal(await page.locator("#override-gira").count(), 1, "A área administrativa deve manter apenas o formulário de excedente.");
+  assert.equal(await page.getByRole("heading", { name: "Cadastro administrativo acima da capacidade" }).isVisible(), true, "O cadastro administrativo acima da capacidade deve continuar disponível.");
   assert.equal(await page.locator("#ordinary-gira").count(), 0, "Cadastro comum não pode reaparecer em operações administrativas.");
   assert.equal(await page.locator("summary", { hasText: "Configurações do portal" }).count(), 1, "Configurações deve estar identificada.");
   assert.equal(await page.getByText(/Personalize as informações exibidas no portal público/).count(), 1, "Configurações deve explicar sua finalidade.");
