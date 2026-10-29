@@ -550,12 +550,32 @@ function showTeamSession(role) {
     }
     if(field.length||row.length){row.push(field);if(row.some(v=>v.trim()!==""))rows.push(row);}
     if(!rows.length)throw new Error("O CSV está vazio.");
-    const headers=rows.shift().map(v=>v.replace(/^\uFEFF/,"").trim().toLowerCase());
-    const required=["gira_id","senha_original","nome_completo","status"];
-    if(required.some(k=>!headers.includes(k)))throw new Error("Cabeçalhos obrigatórios: gira_id, senha_original, nome_completo e status.");
+    const rawHeaders=rows.shift().map(v=>v.replace(/^\uFEFF/,"").trim());
+    const norm = value => String(value||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+    const headers=rawHeaders.map(norm);
+    const find = (...names) => headers.findIndex(h=>names.includes(h));
+    const indexes = {
+      senha_original:find("senha","senhaoriginal"), nome_completo:find("nome","nomecompleto"),
+      gira_id:find("giraid"), gira:find("gira","giraatendimento","evento"),
+      data_nascimento:find("nascimento","datanascimento"), telefone:find("telefone","celular"),
+      email:find("email"), primeira_vez:find("1avez","primeiravez"), retorno:find("retorno"),
+      medium_nome:find("medium","nomemedium"), preferencial:find("pref","preferencial"),
+      tipo_preferencial:find("tipopreferencial"), descricao_preferencial:find("descricaopreferencial"),
+      status:find("status"), linha_origem:find("linhaorigem")
+    };
+    if(indexes.senha_original<0||indexes.nome_completo<0||(indexes.gira_id<0&&indexes.gira<0))
+      throw new Error("Colunas obrigatórias: Senha, Nome e Gira (ou gira_id).");
     return rows.map((values,i)=>{
-      const item={};headers.forEach((h,j)=>item[h]=(values[j]??"").trim());
-      item.preferencial=["true","sim","1","yes"].includes(String(item.preferencial||"").toLowerCase());
+      const item={};
+      for(const [key,index] of Object.entries(indexes)) if(index>=0)item[key]=(values[index]??"").trim();
+      if(!item.gira_id&&indexes.gira>=0){
+        const label=String(values[indexes.gira]??"").trim();
+        const matches=currentGiras.filter(g=>label===g.titulo||label===g.titulo+" — "+formatDate(g.data_gira));
+        if(matches.length===1)item.gira_id=matches[0].id;
+        else item.erro_gira=matches.length?"Gira ambígua; precisa de associação manual.":"Gira não identificada; informe gira_id ou associe a gira corretamente.";
+      }
+      if(!item.status)item.status="excluida";
+      item.preferencial=["true","sim","1","yes","s","x"].includes(String(item.preferencial||"").toLowerCase());
       item.linha_origem=item.linha_origem||String(i+2);
       return item;
     });
