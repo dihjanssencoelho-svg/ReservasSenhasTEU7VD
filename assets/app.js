@@ -1013,15 +1013,34 @@ function showTeamSession(role) {
   const giraSection = makeAdminSection("Agenda e cadastro de giras", true);
   giraSection.content.append(createGiraForm);
   const reservationSection = makeAdminSection("Reservas e consultas", true);
-  reservationSection.content.append(filters, status, exportBar, results, pagination);
+  const reservationIntro = document.createElement("p");
+  reservationIntro.className = "small muted";
+  reservationIntro.textContent = "Consulte, filtre e gerencie reservas existentes. Use os filtros para localizar um cadastro; as ações aparecem ao lado de cada resultado.";
+  reservationSection.content.append(reservationIntro, filters, status, exportBar, results, pagination, ordinaryReservationForm);
   if (role === "admin") {
     const operationsSection = makeAdminSection("Operações administrativas");
-    operationsSection.content.append(ordinaryReservationForm, overCapacityForm, importForm, restoreForm, backupButton);
+    const operationsIntro = document.createElement("p");
+    operationsIntro.className = "small muted";
+    operationsIntro.textContent = "Esta área é exclusiva para cadastrar uma reserva excepcional acima da capacidade normal da gira. Para importação, backup ou ajustes do portal, utilize a aba correspondente.";
+    operationsSection.content.append(operationsIntro, overCapacityForm);
+    const importSection = makeAdminSection("Importação de planilhas");
+    const importIntro = document.createElement("p");
+    importIntro.className = "small muted";
+    importIntro.textContent = "Fluxo recomendado: 1) selecione o arquivo; 2) valide a prévia; 3) confira o resultado; 4) informe o motivo; 5) digite IMPORTAR; 6) aplique. Validar prévia não grava dados.";
+    importSection.content.append(importIntro, importForm);
+    const backupSection = makeAdminSection("Backup e restauração");
+    const backupIntro = document.createElement("p");
+    backupIntro.className = "small muted";
+    backupIntro.textContent = "Gere e guarde backups em local restrito: o arquivo contém dados pessoais. Restaure somente após conferir o arquivo e o resumo da prévia.";
+    backupSection.content.append(backupIntro, backupButton, restoreForm);
     const settingsSection = makeAdminSection("Configurações do portal");
-    settingsSection.content.append(settingsForm);
+    const settingsIntro = document.createElement("p");
+    settingsIntro.className = "small muted";
+    settingsIntro.textContent = "Personalize as informações exibidas no portal público, como mensagens institucionais, cores e parâmetros de apresentação. Salve as alterações para atualizar a experiência pública.";
+    settingsSection.content.append(settingsIntro, settingsForm);
     const dashboard = document.createElement("div");
     dashboard.className = "admin-dashboard";
-    dashboard.append(giraSection.section, reservationSection.section, operationsSection.section, settingsSection.section);
+    dashboard.append(giraSection.section, reservationSection.section, importSection.section, operationsSection.section, backupSection.section, settingsSection.section);
     teamSession.append(heading, detail, dashboard, logout);
   } else {
     const dashboard = document.createElement("div");
