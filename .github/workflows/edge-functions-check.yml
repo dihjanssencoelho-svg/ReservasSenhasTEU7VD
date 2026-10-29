@@ -3,6 +3,7 @@ name: Validar Edge Functions TEU7VD
 on:
   push:
     branches:
+      - main
       - preparacao-homologacao
   pull_request:
     branches:
@@ -46,8 +47,7 @@ jobs:
           grep -q 'functions/v1/criar-reserva' assets/app.js
           grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' index.html
           grep -q 'if (!turnstileTokenForHomologation)' assets/app.js
-          grep -q 'src="./assets/Logo%20TEU7VD.png"' index.html
-          test -s 'assets/Logo TEU7VD.png'
+          grep -q 'src="https://dihjanssencoelho-svg.github.io/siteTEU7VD/assets/Logo%20TEU7VD.png"' index.html
 
       - name: Verificar contrato de regras e índice ant duplicidade
         run: |
@@ -296,12 +296,16 @@ jobs:
           fi
           grep -q 'Cadastro administrativo acima da capacidade' /tmp/teu7vd-public-app.js
           echo "OK: o JavaScript publicado remove o cadastro comum e mantém o cadastro acima da capacidade."
-          logo_url="https://raw.githubusercontent.com/dihjanssencoelho-svg/siteTEU7VD/main/assets/logo-teu7vd.jpeg"
-          grep -Fq "$logo_url" /tmp/teu7vd-public.html
-          curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$logo_url" -o /tmp/teu7vd-logo.jpeg
-          logo_signature="$(od -An -tx1 -N3 /tmp/teu7vd-logo.jpeg | tr -d ' \n')"
-          test "$logo_signature" = "ffd8ff"
-          echo "OK: formulário, Turnstile e imagem oficial JPEG acessíveis na versão publicada. Nenhuma reserva foi enviada."
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            echo "PR: validação da logo publicada será confirmada após o merge em main."
+          else
+            logo_url="https://dihjanssencoelho-svg.github.io/siteTEU7VD/assets/Logo%20TEU7VD.png"
+            grep -Fq "src=\"$logo_url\"" /tmp/teu7vd-public.html
+            curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$logo_url" -o /tmp/teu7vd-logo.png
+            logo_signature="$(od -An -tx1 -N8 /tmp/teu7vd-logo.png | tr -d ' \\n')"
+            test "$logo_signature" = "89504e470d0a1a0a"
+            echo "OK: formulário, Turnstile e logo PNG do site institucional acessíveis na versão publicada. Nenhuma reserva foi enviada."
+          fi
 
       - name: Validar sintaxe dos testes de ponta a ponta
         run: |
