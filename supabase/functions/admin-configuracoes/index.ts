@@ -8,7 +8,17 @@ function reply(status: number, body: Record<string, unknown>, origin: string | n
 function secretKey(): string | null { try { const v=JSON.parse(Deno.env.get("SUPABASE_SECRET_KEYS")??"{}"); return typeof v.default==="string"?v.default:null; } catch { return null; } }
 Deno.serve(async req => {
   const origin=req.headers.get("origin"), expected=originExpected();
-  if(req.method==="OPTIONS") return !expected||origin!==expected?new Response(null,{status:403}):reply(204,{},origin);
+  if(req.method==="OPTIONS") {
+    if(!expected||origin!==expected) return new Response(null,{status:403});
+    const h = new Headers({
+      "Cache-Control":"no-store",
+      "Vary":"Origin",
+      "Access-Control-Allow-Headers":"authorization, apikey, content-type",
+      "Access-Control-Allow-Methods":"POST, OPTIONS"
+    });
+    h.set("Access-Control-Allow-Origin", origin);
+    return new Response(null,{status:204,headers:h});
+  }
   if(req.method!=="POST") return reply(405,{success:false,message:"Método não permitido."},origin);
   if(!expected||origin!==expected) return reply(403,{success:false,message:"Origem não autorizada."},origin);
   const token=/^Bearer\s+(.+)$/i.exec(req.headers.get("authorization")??"")?.[1];
