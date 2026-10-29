@@ -3,6 +3,7 @@ name: Validar Edge Functions TEU7VD
 on:
   push:
     branches:
+      - main
       - preparacao-homologacao
   pull_request:
     branches:
