@@ -300,7 +300,24 @@ jobs:
             echo "PR: validação da logo publicada será confirmada após o merge em main."
           else
             logo_url="https://dihjanssencoelho-svg.github.io/siteTEU7VD/assets/Logo%20TEU7VD.png"
-            grep -Fq "src=\"$logo_url\"" /tmp/teu7vd-public.html
+            # GitHub Pages can take a short time to publish a commit to main.
+            # Poll the public HTML instead of failing on the first stale response.
+            published_logo=false
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error --location "$url?verify_logo=$attempt" -o /tmp/teu7vd-public.html \
+                && grep -Fq "src=\"$logo_url\"" /tmp/teu7vd-public.html; then
+                published_logo=true
+                echo "Logo URL encontrada na versão pública após tentativa $attempt."
+                break
+              fi
+              echo "Aguardando publicação da referência da logo no Pages ($attempt/30)."
+              sleep 10
+            done
+            if [ "$published_logo" != "true" ]; then
+              echo "ERRO: o Pages não publicou a referência da nova logo dentro de 5 minutos."
+              grep -o 'class="portal-logo"[^>]*' /tmp/teu7vd-public.html || true
+              exit 1
+            fi
             curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$logo_url" -o /tmp/teu7vd-logo.png
             logo_signature="$(od -An -tx1 -N8 /tmp/teu7vd-logo.png | tr -d ' \\n')"
             test "$logo_signature" = "89504e470d0a1a0a"
