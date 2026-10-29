@@ -9,7 +9,7 @@ const functionUrl = "https://emwnytvlbpgiwqswojze.supabase.co/functions/v1/criar
 const fakeGiraId = "00000000-0000-4000-8000-000000000001";
 let intercepted = null;
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: process.env.HEADLESS !== "0" });
 try {
   const page = await browser.newPage();
   await page.route(functionUrl, async (route) => {
