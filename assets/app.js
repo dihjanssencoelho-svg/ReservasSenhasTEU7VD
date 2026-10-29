@@ -521,10 +521,10 @@ function showTeamSession(role) {
   importForm.className = "admin-filters";
   importForm.hidden = role !== "admin";
   importForm.innerHTML = `
-    <h4>Importar planilha histórica (CSV)</h4>
-    <p class="small muted">A importação exige mapear cada linha para uma gira existente por gira_id. Senhas originais são preservadas; reservas ativas não podem exceder a capacidade. A prévia não altera reservas.</p>
-    <button id="download-import-template" type="button" class="secondary-button">Baixar modelo CSV</button>
-    <label for="import-csv-file">Arquivo CSV (até 5.000 linhas)</label><input id="import-csv-file" type="file" accept=".csv,text/csv" required>
+    <h4>Importação de planilhas</h4>
+    <p class="small muted">Envie CSV ou Excel (.xlsx/.xls). A prévia não grava reservas. Para planilhas sem gira_id, o sistema tenta associar o nome da gira existente; se houver dúvida, a linha será rejeitada e precisará de associação manual. O status padrão de linhas sem status é “excluida”, para evitar ativação acidental.</p>
+    <button id="download-import-template" type="button" class="secondary-button">Baixar modelo CSV do sistema</button>
+    <label for="import-csv-file">Arquivo CSV ou Excel (até 5.000 linhas)</label><input id="import-csv-file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required>
     <button type="submit">Validar importação (prévia)</button>
     <p id="import-preview-status" class="small muted" role="status" aria-live="polite"></p>
     <label for="import-reason">Motivo da importação (mínimo 10 caracteres)</label><textarea id="import-reason" maxlength="500" minlength="10" required></textarea>
@@ -587,8 +587,17 @@ function showTeamSession(role) {
     if(!token||!file){status.textContent="Sessão administrativa e CSV são obrigatórios.";return;}
     if(file.size>6000000){status.textContent="O CSV excede 6 MB.";return;}
     try{
-      importRows=parseCsv(await file.text());
-      if(importRows.length>5000)throw new Error("O CSV excede 5.000 linhas.");
+      const ext=file.name.toLowerCase().split(".").pop();
+      if(["xlsx","xls"].includes(ext)){
+        if(!window.XLSX)throw new Error("Leitor Excel indisponível. Salve a planilha como CSV UTF-8 ou tente novamente.");
+        const workbook=window.XLSX.read(await file.arrayBuffer(),{type:"array",cellDates:false});
+        const first=workbook.Sheets[workbook.SheetNames[0]];
+        const csv=window.XLSX.utils.sheet_to_csv(first,{FS:";"});
+        importRows=parseCsv(csv);
+      }else importRows=parseCsv(await file.text());
+      if(importRows.length>5000)throw new Error("O arquivo excede 5.000 linhas.");
+      const badGira=importRows.find(row=>row.erro_gira);
+      if(badGira)throw new Error("Linha "+badGira.linha_origem+": "+badGira.erro_gira+" A prévia foi interrompida; nenhuma reserva foi criada.");
       status.textContent="Validando "+importRows.length+" linha(s) no servidor…";
       const response=await fetch(SUPABASE_URL+"/functions/v1/admin-import-reservas",{method:"POST",headers:{apikey:SUPABASE_PUBLIC_KEY,Authorization:"Bearer "+token,"Content-Type":"application/json"},body:JSON.stringify({action:"preview_import",rows:importRows}),cache:"no-store"});
       const result=await response.json().catch(()=>null);
