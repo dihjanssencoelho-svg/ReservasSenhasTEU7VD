@@ -286,6 +286,14 @@ jobs:
           curl --fail --silent --show-error --location --retry 5 --retry-delay 5 "$url" -o /tmp/teu7vd-public.html
           grep -q 'id="reservation-submit" type="submit">Solicitar reserva</button>' /tmp/teu7vd-public.html
           grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' /tmp/teu7vd-public.html
+          app_url="https://dihjanssencoelho-svg.github.io/ReservasSenhasTEU7VD/assets/app.js"
+          curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$app_url" -o /tmp/teu7vd-public-app.js
+          if grep -Fq 'Cadastro administrativo comum' /tmp/teu7vd-public-app.js || grep -q 'ordinaryReservationForm' /tmp/teu7vd-public-app.js; then
+            echo "ERRO: a versão publicada ainda contém o cadastro administrativo comum."
+            exit 1
+          fi
+          grep -q 'Cadastro administrativo acima da capacidade' /tmp/teu7vd-public-app.js
+          echo "OK: o JavaScript publicado remove o cadastro comum e mantém o cadastro acima da capacidade."
           logo_url="https://raw.githubusercontent.com/dihjanssencoelho-svg/siteTEU7VD/main/assets/logo-teu7vd.jpeg"
           grep -Fq "$logo_url" /tmp/teu7vd-public.html
           curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$logo_url" -o /tmp/teu7vd-logo.jpeg
