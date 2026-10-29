@@ -46,6 +46,8 @@ jobs:
           grep -q 'functions/v1/criar-reserva' assets/app.js
           grep -q 'data-sitekey="0x4AAAAAAFnEzhpEH4Texj_-' index.html
           grep -q 'if (!turnstileTokenForHomologation)' assets/app.js
+          grep -q 'src="./assets/Logo%20TEU7VD.png"' index.html
+          test -s 'assets/Logo TEU7VD.png'
 
       - name: Verificar contrato de regras e índice ant duplicidade
         run: |
