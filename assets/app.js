@@ -402,40 +402,6 @@ function showTeamSession(role) {
   overridePreferentialType?.addEventListener("change", () => {
     overridePreferentialDescription.required = overridePreferential.value === "true" && overridePreferentialType.value === "Outro";
   });
-  const ordinaryReservationForm = document.createElement("form");
-  ordinaryReservationForm.className = "admin-filters";
-  ordinaryReservationForm.hidden = role !== "admin";
-  ordinaryReservationForm.innerHTML = `
-    <h4>Cadastro administrativo comum</h4>
-    <p class="small muted">Somente a gira é obrigatória. Os demais dados podem ser preenchidos agora ou atualizados conforme necessário. O cadastro respeita a capacidade normal; excedentes exigem o fluxo específico com justificativa.</p>
-    <label for="ordinary-gira">Gira publicada <span class="required-mark">*</span></label><select id="ordinary-gira" name="gira_id" required><option value="">Carregando giras…</option></select>
-    <label for="ordinary-name">Nome completo (opcional)</label><input id="ordinary-name" name="nome_completo" maxlength="180">
-    <label for="ordinary-dob">Data de nascimento (opcional)</label><input id="ordinary-dob" name="data_nascimento" type="date">
-    <label for="ordinary-phone">Telefone (opcional)</label><input id="ordinary-phone" name="telefone" type="tel" maxlength="32">
-    <label for="ordinary-email">E-mail (opcional)</label><input id="ordinary-email" name="email" type="email" maxlength="254">
-    <label for="ordinary-first-time">Primeira vez? (opcional)</label><select id="ordinary-first-time" name="primeira_vez"><option value="">Não informado</option><option>Sim</option><option>Não</option></select>
-    <label for="ordinary-preferential">Atendimento preferencial? (opcional)</label><select id="ordinary-preferential" name="preferencial"><option value="false">Não informado / Não</option><option value="true">Sim</option></select>
-    <div id="ordinary-preferential-wrap" hidden>
-      <label for="ordinary-preferential-type">Tipo preferencial</label><select id="ordinary-preferential-type" name="tipo_preferencial"><option value="">Selecione</option><option>Gestante</option><option>Idoso</option><option>Criança de Colo</option><option>PCD</option><option>Outro</option></select>
-      <label for="ordinary-preferential-description">Descrição (para Outro)</label><input id="ordinary-preferential-description" name="descricao_preferencial" maxlength="300">
-    </div>
-    <label for="ordinary-return">Retorna com médium? (opcional)</label><select id="ordinary-return" name="retorno"><option value="">Não informado</option><option>Sim</option><option>Não</option></select>
-    <label for="ordinary-medium">Nome do médium (opcional)</label><input id="ordinary-medium" name="medium_nome" maxlength="180">
-    <button type="submit">Registrar reserva</button>
-    <p id="ordinary-reservation-status" class="small muted" role="status" aria-live="polite"></p>`;
-  const ordinaryPreferential = ordinaryReservationForm.querySelector("#ordinary-preferential");
-  const ordinaryPreferentialWrap = ordinaryReservationForm.querySelector("#ordinary-preferential-wrap");
-  const ordinaryPreferentialType = ordinaryReservationForm.querySelector("#ordinary-preferential-type");
-  const ordinaryPreferentialDescription = ordinaryReservationForm.querySelector("#ordinary-preferential-description");
-  ordinaryPreferential?.addEventListener("change", () => {
-    const active = ordinaryPreferential.value === "true";
-    ordinaryPreferentialWrap.hidden = !active;
-    ordinaryPreferentialType.required = active;
-    ordinaryPreferentialDescription.required = active && ordinaryPreferentialType.value === "Outro";
-  });
-  ordinaryPreferentialType?.addEventListener("change", () => {
-    ordinaryPreferentialDescription.required = ordinaryPreferential.value === "true" && ordinaryPreferentialType.value === "Outro";
-  });
   const createGiraForm = document.createElement("form");
   createGiraForm.className = "admin-filters";
   createGiraForm.hidden = role !== "admin";
@@ -765,14 +731,6 @@ function showTeamSession(role) {
         throw new Error("Consulta não autorizada ou indisponível.");
       }
       currentGiras = Array.isArray(result.giras) ? result.giras : [];
-      const ordinaryGira = ordinaryReservationForm.querySelector("#ordinary-gira");
-      if (ordinaryGira && ordinaryGira.options.length <= 1) {
-        ordinaryGira.replaceChildren(new Option("Selecione uma gira", ""));
-        for (const gira of currentGiras.filter(g => g.ativa === true && g.status === "publicada" && Number.isInteger(g.limite_vagas))) {
-          ordinaryGira.add(new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id));
-        }
-        if (ordinaryGira.options.length === 1) ordinaryGira.options[0].textContent = "Nenhuma gira publicada elegível";
-      }
       const overrideGira = overCapacityForm.querySelector("#override-gira");
       if (overrideGira && overrideGira.options.length <= 1) {
         overrideGira.replaceChildren(new Option("Selecione uma gira", ""));
@@ -885,35 +843,6 @@ function showTeamSession(role) {
       settingsForm.querySelector("#portal-settings-status").textContent = "Não foi possível carregar as configurações atuais.";
     }
   };
-  ordinaryReservationForm.addEventListener("submit", async event => {
-    event.preventDefault();
-    if (role !== "admin" || !ordinaryReservationForm.reportValidity()) return;
-    const token = getToken();
-    const out = ordinaryReservationForm.querySelector("#ordinary-reservation-status");
-    if (!token) { clearTeamSession(); setTeamStatus("Sessão expirada. Entre novamente."); return; }
-    const payload = Object.fromEntries(new FormData(ordinaryReservationForm).entries());
-    payload.preferencial = payload.preferencial === "true";
-    if (!payload.preferencial) { payload.tipo_preferencial = ""; payload.descricao_preferencial = ""; }
-    if (payload.retorno !== "Sim") payload.medium_nome = "";
-    for (const key of ["nome_completo","data_nascimento","telefone","email","primeira_vez","tipo_preferencial","descricao_preferencial","retorno","medium_nome"]) {
-      if (!payload[key]) payload[key] = null;
-    }
-    const submit = ordinaryReservationForm.querySelector('button[type="submit"]');
-    submit.disabled = true; out.textContent = "Validando permissões, capacidade e registrando auditoria…";
-    try {
-      const response = await fetch(SUPABASE_URL + "/functions/v1/admin-criar-reserva", {
-        method: "POST", headers: { apikey: SUPABASE_PUBLIC_KEY, Authorization: "Bearer " + token, "Content-Type": "application/json" },
-        body: JSON.stringify(payload), cache: "no-store"
-      });
-      const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.success) throw new Error(result?.message || "Cadastro não concluído.");
-      ordinaryReservationForm.reset(); ordinaryPreferentialWrap.hidden = true;
-      ordinaryPreferentialType.required = false; ordinaryPreferentialDescription.required = false;
-      out.textContent = (result.message || "Reserva administrativa registrada.") + (result.senha ? " Senha: " + result.senha : "");
-      page = 1; await fetchReservations();
-    } catch (error) { out.textContent = error instanceof Error ? error.message : "Cadastro não concluído."; }
-    finally { submit.disabled = false; }
-  });
   createGiraForm.addEventListener("submit", async event => {
     event.preventDefault();
     if (role !== "admin" || !createGiraForm.reportValidity()) return;
