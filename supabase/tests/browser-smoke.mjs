@@ -25,7 +25,6 @@ const browser = await chromium.launch({ headless: true });
 try {
   const page = await browser.newPage();
   let giraPayload = null;
-  let ordinaryPayload = null;
   let adminActionPayloads = [];
   let reservationDeleted = false;
   let publicReservationPayload = null;
@@ -53,10 +52,6 @@ try {
     if (requestUrl.pathname === "/functions/v1/criar-reserva") {
       publicReservationPayload = JSON.parse(request.postData() || "{}");
       return json({ success: true, message: "Reserva confirmada para homologação.", reservation_id: "523e4567-e89b-12d3-a456-426614174000", senha: 9 });
-    }
-    if (requestUrl.pathname === "/functions/v1/admin-criar-reserva") {
-      ordinaryPayload = JSON.parse(request.postData() || "{}");
-      return json({ success: true, message: "Reserva administrativa registrada.", reservation_id: "423e4567-e89b-12d3-a456-426614174000", senha: 8 });
     }
     if (requestUrl.pathname === "/functions/v1/admin-reservas") {
       const payload = JSON.parse(request.postData() || "{}");
@@ -152,17 +147,18 @@ try {
   assert.equal(await page.locator("#new-gira-title").isVisible(), true, "O administrador deveria poder cadastrar novas giras.");
   assert.equal(await page.locator("#new-gira-capacity").getAttribute("type"), "number");
   assert.equal(await page.locator("#new-gira-capacity").getAttribute("min"), "1");
-  assert.equal(await page.locator(".admin-section").count(), 4, "As funções administrativas devem aparecer agrupadas em quatro áreas.");
+  assert.equal(await page.locator(".admin-section").count(), 6, "O painel deve separar agenda, reservas, importação, excedente, backup/restauração e configurações.");
+  assert.equal(await page.locator("#ordinary-gira").count(), 0, "Cadastro administrativo comum deve ter sido removido do painel.");
+  assert.equal(await page.locator("#ordinary-name").count(), 0, "Campos do cadastro administrativo comum não devem aparecer.");
+  await page.locator("summary", { hasText: "Importação de planilhas" }).click();
+  const acceptedFormats = await page.locator("#import-csv-file").getAttribute("accept");
+  assert.ok(acceptedFormats.includes(".xlsx") && acceptedFormats.includes(".xls") && acceptedFormats.includes(".csv"), "Importação deve aceitar CSV e Excel.");
+  assert.equal(await page.locator("#import-apply").isDisabled(), true, "Aplicar importação deve iniciar bloqueado.");
   await page.locator("summary", { hasText: "Operações administrativas" }).click();
-  assert.equal(await page.locator("#ordinary-gira").getAttribute("required"), "", "A gira deve ser obrigatória no cadastro comum.");
-  for (const selector of ["#ordinary-name", "#ordinary-dob", "#ordinary-phone", "#ordinary-email", "#ordinary-first-time", "#ordinary-preferential", "#ordinary-return", "#ordinary-medium"]) {
-    assert.equal(await page.locator(selector).getAttribute("required"), null, selector + " deve ser opcional.");
-  }
-  await page.locator("#ordinary-gira").selectOption("123e4567-e89b-12d3-a456-426614174000");
-  await page.getByRole("button", { name: "Registrar reserva" }).click();
-  await page.getByText("Reserva administrativa registrada. Senha: 8").waitFor();
-  assert.equal(ordinaryPayload.gira_id, "123e4567-e89b-12d3-a456-426614174000");
-  for (const key of ["nome_completo", "data_nascimento", "telefone", "email", "primeira_vez", "retorno", "medium_nome"]) assert.equal(ordinaryPayload[key], null, key + " deve ser opcional vazio.");
+  assert.equal(await page.locator("#override-gira").count(), 1, "A área administrativa deve manter apenas o formulário de excedente.");
+  assert.equal(await page.locator("#ordinary-gira").count(), 0, "Cadastro comum não pode reaparecer em operações administrativas.");
+  assert.equal(await page.locator("summary", { hasText: "Configurações do portal" }).count(), 1, "Configurações deve estar identificada.");
+  assert.equal(await page.getByText(/Personalize as informações exibidas no portal público/).count(), 1, "Configurações deve explicar sua finalidade.");
   await page.getByRole("button", { name: /Editar reserva 7/ }).click();
   const editor = page.getByRole("dialog", { name: "Editar retorno" });
   assert.equal(await editor.locator("#editor-return").inputValue(), "Não");
@@ -189,7 +185,7 @@ try {
   await page.getByText("Gira cadastrada e publicada com 12 senhas disponíveis.").waitFor();
   assert.deepEqual(giraPayload, { titulo: "Gira de teste", data_gira: "2027-01-15", tipo_gira: "Caboclos", limite_vagas: 12 });
 
-  console.log("OK homologação local: Turnstile bloqueia envio sem token; pop-ups públicos aparecem na sequência correta; cadastro administrativo, edição de retorno, exclusão e cadastro de gira são testados com APIs mockadas.");
+  console.log("OK homologação local: Turnstile bloqueia envio sem token; pop-ups públicos aparecem na sequência correta; edição de retorno, exclusão, cadastro de gira, organização das abas e remoção do cadastro administrativo comum são testados com APIs mockadas.");
 } finally {
   await browser.close();
   await new Promise((resolveClose) => server.close(resolveClose));
