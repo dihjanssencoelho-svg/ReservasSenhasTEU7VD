@@ -559,13 +559,13 @@ function showTeamSession(role) {
       senha_original:find("senha","senhaoriginal"), nome_completo:find("nome","nomecompleto"),
       gira_id:find("giraid"), gira:find("gira","giraatendimento","evento"),
       data_nascimento:find("nascimento","datanascimento"), telefone:find("telefone","celular"),
-      email:find("email"), primeira_vez:find("1avez","primeiravez"), retorno:find("retorno"),
+      email:find("email"), primeira_vez:find("1avez","1vez","primeiravez"), retorno:find("retorno"),
       medium_nome:find("medium","nomemedium"), preferencial:find("pref","preferencial"),
       tipo_preferencial:find("tipopreferencial"), descricao_preferencial:find("descricaopreferencial"),
       status:find("status"), linha_origem:find("linhaorigem")
     };
-    if(indexes.senha_original<0||indexes.nome_completo<0||(indexes.gira_id<0&&indexes.gira<0))
-      throw new Error("Colunas obrigatórias: Senha, Nome e Gira (ou gira_id).");
+    if(indexes.senha_original<0||indexes.nome_completo<0)
+      throw new Error("Colunas obrigatórias: Senha e Nome.");
     return rows.map((values,i)=>{
       const item={};
       for(const [key,index] of Object.entries(indexes)) if(index>=0)item[key]=(values[index]??"").trim();
