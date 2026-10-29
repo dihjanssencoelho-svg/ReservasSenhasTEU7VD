@@ -150,10 +150,10 @@ try {
   assert.equal(await page.locator(".admin-section").count(), 6, "O painel deve separar agenda, reservas, importação, excedente, backup/restauração e configurações.");
   assert.equal(await page.locator("#ordinary-gira").count(), 0, "Cadastro administrativo comum deve ter sido removido do painel.");
   assert.equal(await page.locator("#ordinary-name").count(), 0, "Campos do cadastro administrativo comum não devem aparecer.");
-  assert.equal((await page.locator(".admin-dashboard").innerText()).includes("Cadastro administrativo comum"), false, "A opção Cadastro administrativo comum não pode aparecer em nenhuma área do painel.");
-  await page.locator("summary", { hasText: "Reservas e consultas" }).click();
-  const reservationSectionText = await page.locator(".admin-section").filter({ has: page.locator("summary", { hasText: "Reservas e consultas" }) }).innerText();
-  assert.equal(reservationSectionText.includes("Cadastro administrativo comum"), false, "Reservas e consultas não deve exibir Cadastro administrativo comum.");
+  const dashboardText = await page.locator(".admin-dashboard").textContent() || "";
+  assert.equal(dashboardText.includes("Cadastro administrativo comum"), false, "A opção Cadastro administrativo comum não pode aparecer em nenhuma área do painel.");
+  const reservationSection = page.locator(".admin-section").filter({ has: page.locator("summary", { hasText: "Reservas e consultas" }) });
+  assert.equal(((await reservationSection.textContent()) || "").includes("Cadastro administrativo comum"), false, "Reservas e consultas não deve conter Cadastro administrativo comum, mesmo em conteúdo recolhido.");
   await page.locator("summary", { hasText: "Importação de planilhas" }).click();
   const acceptedFormats = await page.locator("#import-csv-file").getAttribute("accept");
   assert.ok(acceptedFormats.includes(".xlsx") && acceptedFormats.includes(".xls") && acceptedFormats.includes(".csv"), "Importação deve aceitar CSV e Excel.");
