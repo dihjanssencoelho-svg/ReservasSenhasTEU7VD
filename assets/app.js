@@ -820,7 +820,7 @@ function showTeamSession(role) {
             editButton.setAttribute("aria-label", "Editar reserva " + (item.senha_original || item.senha_numero || ""));
             editButton.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>Edit</span>';
             editButton.addEventListener("click", () => openReservationEditor(item));
-            actionGroup.append(editButton);
+            if (item.status !== "excluida") actionGroup.append(editButton);
             if (item.status !== "excluida") {
               const deleteButton = document.createElement("button");
               deleteButton.type = "button"; deleteButton.className = "icon-action delete-action";
