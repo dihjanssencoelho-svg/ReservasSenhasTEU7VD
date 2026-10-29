@@ -1016,7 +1016,7 @@ function showTeamSession(role) {
   const reservationIntro = document.createElement("p");
   reservationIntro.className = "small muted";
   reservationIntro.textContent = "Consulte, filtre e gerencie reservas existentes. Use os filtros para localizar um cadastro; as ações aparecem ao lado de cada resultado.";
-  reservationSection.content.append(reservationIntro, filters, status, exportBar, results, pagination, ordinaryReservationForm);
+  reservationSection.content.append(reservationIntro, filters, status, exportBar, results, pagination);
   if (role === "admin") {
     const operationsSection = makeAdminSection("Operações administrativas");
     const operationsIntro = document.createElement("p");
