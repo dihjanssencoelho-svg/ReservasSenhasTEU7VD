@@ -297,13 +297,12 @@ jobs:
           fi
           grep -q 'Cadastro administrativo acima da capacidade' /tmp/teu7vd-public-app.js
           echo "OK: o JavaScript publicado remove o cadastro comum e mantém o cadastro acima da capacidade."
-          logo_path="./assets/Logo%20TEU7VD.png"
-          grep -Fq "src=\"$logo_path\"" /tmp/teu7vd-public.html
-          logo_url="https://dihjanssencoelho-svg.github.io/ReservasSenhasTEU7VD/assets/Logo%20TEU7VD.png"
+          logo_url="https://dihjanssencoelho-svg.github.io/siteTEU7VD/assets/Logo%20TEU7VD.png"
+          grep -Fq "src=\"$logo_url\"" /tmp/teu7vd-public.html
           curl --fail --silent --show-error --location --retry 5 --retry-delay 3 "$logo_url" -o /tmp/teu7vd-logo.png
           logo_signature="$(od -An -tx1 -N8 /tmp/teu7vd-logo.png | tr -d ' \n')"
           test "$logo_signature" = "89504e470d0a1a0a"
-          echo "OK: formulário, Turnstile e nova logo PNG acessíveis na versão publicada. Nenhuma reserva foi enviada."
+          echo "OK: formulário, Turnstile e logo PNG do site institucional acessíveis na versão publicada. Nenhuma reserva foi enviada."
 
       - name: Validar sintaxe dos testes de ponta a ponta
         run: |
