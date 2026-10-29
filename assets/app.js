@@ -522,8 +522,9 @@ function showTeamSession(role) {
   importForm.hidden = role !== "admin";
   importForm.innerHTML = `
     <h4>Importação de planilhas</h4>
-    <p class="small muted">Envie CSV ou Excel (.xlsx/.xls). A prévia não grava reservas. Para planilhas sem gira_id, o sistema tenta associar o nome da gira existente; se houver dúvida, a linha será rejeitada e precisará de associação manual. O status padrão de linhas sem status é “excluida”, para evitar ativação acidental.</p>
+    <p class="small muted">Envie CSV ou Excel (.xlsx/.xls). A prévia não grava reservas. Para planilhas sem gira_id, o sistema tenta associar o nome da gira existente; se houver dúvida, a linha será rejeitada e precisará de associação manual. Linhas sem coluna Status serão importadas como ativas e passarão pela validação de capacidade, duplicidade e senha.</p>
     <button id="download-import-template" type="button" class="secondary-button">Baixar modelo CSV do sistema</button>
+    <label for="import-target-gira">Gira de destino (para planilhas sem Gira/gira_id)</label><select id="import-target-gira"><option value="">Selecione uma gira (se necessário)</option></select>
     <label for="import-csv-file">Arquivo CSV ou Excel (até 5.000 linhas)</label><input id="import-csv-file" type="file" accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" required>
     <button type="submit">Validar importação (prévia)</button>
     <p id="import-preview-status" class="small muted" role="status" aria-live="polite"></p>
@@ -574,7 +575,9 @@ function showTeamSession(role) {
         if(matches.length===1)item.gira_id=matches[0].id;
         else item.erro_gira=matches.length?"Gira ambígua; precisa de associação manual.":"Gira não identificada; informe gira_id ou associe a gira corretamente.";
       }
-      if(!item.status)item.status="excluida";
+      if(!item.gira_id&&indexes.gira<0)item.gira_id=importForm.querySelector("#import-target-gira").value;
+      if(!item.gira_id)item.erro_gira="Selecione uma gira de destino ou inclua gira_id/Gira na planilha.";
+      if(!item.status)item.status="ativa";
       item.preferencial=["true","sim","1","yes","s","x"].includes(String(item.preferencial||"").toLowerCase());
       item.linha_origem=item.linha_origem||String(i+2);
       return item;
@@ -784,6 +787,10 @@ function showTeamSession(role) {
       if (giraSelect.options.length <= 1) {
         giraSelect.replaceChildren(new Option("Todas as giras", ""));
         for (const gira of currentGiras) giraSelect.add(new Option(gira.titulo + " — " + formatDate(gira.data_gira), gira.id));
+      }
+      const importGiraSelect=importForm.querySelector("#import-target-gira");
+      if(importGiraSelect&&importGiraSelect.options.length<=1){
+        for(const gira of currentGiras) importGiraSelect.add(new Option(gira.titulo+" — "+formatDate(gira.data_gira),gira.id));
       }
       giraSelect.value = selected;
       exportRows = Array.isArray(result.data) ? result.data : [];
