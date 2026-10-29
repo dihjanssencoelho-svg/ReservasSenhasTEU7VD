@@ -301,12 +301,5 @@ jobs:
           test "$logo_signature" = "ffd8ff"
           echo "OK: formulário, Turnstile e imagem oficial JPEG acessíveis na versão publicada. Nenhuma reserva foi enviada."
 
-      - name: Teste positivo real do Turnstile sem gravar reserva
-        id: live-turnstile-smoke
-        continue-on-error: true
-        run: node supabase/tests/turnstile-live-smoke.mjs
-
-      - name: Sinalizar se o desafio real exigir interação humana
-        if: steps.live-turnstile-smoke.outcome == 'failure'
-        run: |
-          echo "::warning::O teste Turnstile real não concluiu automaticamente. Consulte o log para distinguir bloqueio do desafio, indisponibilidade externa ou erro real do backend."
+      - name: Validar sintaxe do teste Turnstile interativo
+        run: node --check supabase/tests/turnstile-live-smoke.mjs
