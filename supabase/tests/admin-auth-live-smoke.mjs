@@ -15,6 +15,7 @@ const login = await fetch(`${url}/auth/v1/token?grant_type=password`, {
   method: "POST",
   headers: { apikey: key, "Content-Type": "application/json" },
   body: JSON.stringify({ email, password }),
+  signal: AbortSignal.timeout(20000),
 });
 if (!login.ok) {
   throw new Error(`Login do administrador de teste falhou (HTTP ${login.status}); credenciais não foram exibidas.`);
@@ -31,6 +32,7 @@ const response = await fetch(`${url}/functions/v1/admin-reservas`, {
     Origin: origin,
     "Content-Type": "application/json",
   },
+  signal: AbortSignal.timeout(20000),
   body: JSON.stringify({
     action: "cancel",
     reservation_id: "00000000-0000-4000-8000-000000000002",
