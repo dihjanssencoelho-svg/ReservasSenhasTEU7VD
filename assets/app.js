@@ -141,7 +141,7 @@ async function loadPublishedGiras() {
         : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
       const vacancyClass = metric && metric.poucas_vagas ? "gira-vacancies low-vacancy" : "gira-vacancies";
       const alreadyBooked = bookedThisSession.has(gira.id);
-      return '<article class="gira-card' + (alreadyBooked ? " booked-by-me" : "") + '" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-label="' + (alreadyBooked ? "Já reservada nesta sessão: " : "Selecionar ") + escapeHtml(gira.titulo) + ' e abrir o formulário"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
+      return '<article class="gira-card' + (alreadyBooked ? " booked-by-me" : "") + '" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-pressed="false"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' + (alreadyBooked ? '<p class="booked-label">✓ Reserva confirmada nesta sessão</p>' : "") +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
         '<p class="' + vacancyClass + '">' + escapeHtml(vacancyText) + '</p>' +
