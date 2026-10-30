@@ -91,7 +91,7 @@ try {
   // Sem token Turnstile, mesmo um submit válido programático não deve chamar a Edge Function.
   await page.locator("#reservation-form").evaluate((form) => {
     form.querySelector("#full-name").value = "Pessoa de teste";
-    form.querySelector("#event").innerHTML = '<option value="123e4567-e89b-12d3-a456-426614174000">Gira de teste</option>';
+    form.querySelector("#event").innerHTML = '<option value="123e4567-e89b-12d3-a456-426614174000">Gira de teste — 15 de janeiro de 2027</option>';
     form.querySelector("#event").value = "123e4567-e89b-12d3-a456-426614174000";
     form.querySelector("#dob").value = "1990-04-12";
     form.querySelector("#phone").value = "11987654321";
@@ -119,17 +119,16 @@ try {
   const firstPopup = page.getByRole("dialog", { name: "Reserva Confirmada!" });
   await firstPopup.waitFor();
   await page.getByText("Bem-vindo(a), Mariana!", { exact: true }).waitFor();
-  await page.getByText("Sua senha será entregue no portão, antes do início da Gira.", { exact: true }).waitFor();
+  const giraConfirmation = await firstPopup.locator("p").nth(1).innerText();
+  assert.match(giraConfirmation, /^Gira: Gira de teste[\s\S]*15 de janeiro de 2027[\s\S]*Os portões abrem às 18h30 e as senhas são distribuídas a partir desse horário\./, "A confirmação deve apresentar gira, data e horário de abertura dos portões.");
   assert.equal(createReservationRequests.length, 1, "O caminho positivo deve chamar criar-reserva uma única vez.");
   assert.equal(publicReservationPayload.nome_completo, "Mariana Teste");
   assert.equal(publicReservationPayload.gira_id, "123e4567-e89b-12d3-a456-426614174000");
-  await firstPopup.getByRole("button", { name: "OK" }).click();
-  const secondPopup = page.getByRole("dialog", { name: "🌟 Sejam muito bem-vindos a nossa casa 🌟" });
-  await secondPopup.waitFor();
-  await page.getByText(/doação de 1kg de alimento não perecível/, { exact: false }).waitFor();
-  await page.getByText(/cambone que lhe atender/, { exact: false }).waitFor();
-  await secondPopup.getByRole("button", { name: "Concluir" }).click();
-  await secondPopup.waitFor({ state: "detached" });
+  await page.getByText("🌟 Sejam muito bem-vindos a nossa casa 🌟", { exact: true }).waitFor();
+  await firstPopup.getByText(/doação de 1kg de alimento não perecível/, { exact: false }).waitFor();
+  await firstPopup.getByText(/cambone que lhe atender/, { exact: false }).waitFor();
+  await firstPopup.getByRole("button", { name: "Concluir" }).click();
+  await firstPopup.waitFor({ state: "detached" });
 
   assert.equal(await page.locator("#team-access").isHidden(), true, "A área restrita deveria iniciar fechada.");
   const accessToggle = page.locator("#team-access-toggle");
