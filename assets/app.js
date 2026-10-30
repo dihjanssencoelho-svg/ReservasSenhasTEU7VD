@@ -131,6 +131,27 @@ async function loadPublishedGiras() {
     }
 
     girasList.className = "giras-grid";
+    const giraVisuals = [
+      { match: /pret[oa]s?\s*velh/i, icon: "🧓", theme: "pretos-velhos", label: "Arquétipo de Preto Velho" },
+      { match: /cabocl/i, icon: "🏹", theme: "caboclos", label: "Caboclo indígena em meio à natureza" },
+      { match: /malandr/i, icon: "🎩", theme: "malandros", label: "Arquétipo de Malandro" },
+      { match: /pombagira.*ex[uú]|ex[uú].*pombagira/i, icon: "🌹", theme: "pombagiras-exus", label: "Pombagiras e Exús" },
+      { match: /pombagira/i, icon: "🌹", theme: "pombagiras", label: "Arquétipo de Pombagira" },
+      { match: /ex[uú]/i, icon: "🔥", theme: "exus", label: "Arquétipo de Exú" },
+      { match: /marinheir/i, icon: "⚓", theme: "marinheiros", label: "Marinheiro e elementos do mar" },
+      { match: /er[eê]/i, icon: "🧸", theme: "eres", label: "Erês e infância" },
+      { match: /baian/i, icon: "🌵", theme: "baianos", label: "Arquétipo de Baiano" },
+      { match: /boiadeir/i, icon: "🤠", theme: "boiadeiros", label: "Boiadeiro e vida no campo" },
+      { match: /mirim/i, icon: "✨", theme: "mirins", label: "Exú Mirim e Pombagira Mirim" },
+      { match: /cigan/i, icon: "💃", theme: "ciganos", label: "Ciganos e sua cultura" },
+      { match: /cirurgia\s*espiritual/i, icon: "🕊️", theme: "cirurgia-espiritual", label: "Cirurgia espiritual" },
+      { match: /pet/i, icon: "🐾", theme: "pet", label: "Gira Pet" }
+    ];
+    const getGiraVisual = (gira) => {
+      const source = (String(gira.titulo || "") + " " + String(gira.tipo_gira || "")).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const visual = giraVisuals.find(item => item.match.test(source)) || { icon: "🪷", theme: "outras", label: "Gira do TEU7VD" };
+      return '<div class="gira-art gira-art--' + visual.theme + '" role="img" aria-label="' + escapeHtml(visual.label) + '"><span aria-hidden="true">' + visual.icon + '</span></div>';
+    };
     girasList.innerHTML = giras.map((gira) => {
       const vagas = Number.isInteger(gira.limite_vagas) ? gira.limite_vagas : null;
       const metric = vacancyByGira.get(gira.id);
@@ -141,11 +162,12 @@ async function loadPublishedGiras() {
         : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
       const vacancyClass = metric && metric.poucas_vagas ? "gira-vacancies low-vacancy" : "gira-vacancies";
       const alreadyBooked = bookedThisSession.has(gira.id);
-      return '<article class="gira-card' + (alreadyBooked ? " booked-by-me" : "") + '" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-pressed="false"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
+      return '<article class="gira-card' + (alreadyBooked ? " booked-by-me" : "") + '" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-pressed="false">' +
+        getGiraVisual(gira) + '<div class="gira-card-content"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' + (alreadyBooked ? '<p class="booked-label">✓ Reserva confirmada nesta sessão</p>' : "") +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
         '<p class="' + vacancyClass + '">' + escapeHtml(vacancyText) + '</p>' +
-        '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></article>';
+        '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></div></article>';
     }).join("");
     const selectGira = (card) => {
       const eventSelect = document.getElementById("event");
