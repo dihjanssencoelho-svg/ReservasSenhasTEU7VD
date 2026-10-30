@@ -15,7 +15,6 @@ let publicPortalSettings = { mensagem_confirmacao: "Solicitação recebida com s
 
 // Token do Turnstile mantido somente em memória e enviado apenas ao endpoint de validação.
 let turnstileTokenForHomologation = null;
-const bookedThisSession = new Set();
 window.onTurnstileVerified = function (token) {
   turnstileTokenForHomologation = typeof token === "string" ? token : null;
   if (turnstileStatus) {
@@ -140,9 +139,8 @@ async function loadPublishedGiras() {
           metric.vagas_restantes + " vaga(s) restante(s)") + " · " + metric.ocupacao_percentual + "% ocupadas"
         : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
       const vacancyClass = metric && metric.poucas_vagas ? "gira-vacancies low-vacancy" : "gira-vacancies";
-      const alreadyBooked = bookedThisSession.has(gira.id);
-      return '<article class="gira-card' + (alreadyBooked ? " booked-by-me" : "") + '" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-label="' + (alreadyBooked ? "Já reservada nesta sessão: " : "Selecionar ") + escapeHtml(gira.titulo) + ' e abrir o formulário"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
-        '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' + (alreadyBooked ? '<p class="booked-label">✓ Reserva confirmada nesta sessão</p>' : "") +
+      return '<article class="gira-card" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-label="Selecionar ' + escapeHtml(gira.titulo) + ' e abrir o formulário"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
+        '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
         '<p class="' + vacancyClass + '">' + escapeHtml(vacancyText) + '</p>' +
         '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></article>';
@@ -153,8 +151,6 @@ async function loadPublishedGiras() {
       const giraId = card?.dataset?.giraId;
       if (!giraId || !Array.from(eventSelect.options).some(option => option.value === giraId && !option.disabled)) return;
       eventSelect.value = giraId;
-      const display = document.getElementById("event-display");
-      if (display) display.value = card.querySelector("h3")?.textContent + " — " + card.querySelector(".eyebrow")?.textContent;
       if (reservationPanel) reservationPanel.hidden = false;
       girasList.querySelectorAll(".gira-card").forEach(item => {
         const selected = item === card;
@@ -250,9 +246,6 @@ reservationForm?.addEventListener("submit", async (event) => {
     const result = await response.json().catch(() => null);
     if (!response.ok || !result?.success) throw new Error(result?.message || "Não foi possível concluir a reserva. Tente novamente.");
     const firstName = value("full-name").split(/\s+/).filter(Boolean)[0] || "consulente";
-    const selectedOption = document.getElementById("event")?.selectedOptions?.[0];
-    const confirmedGira = { id: value("event"), title: selectedOption?.textContent?.split(" — ")[0] || "Gira confirmada", date: selectedOption?.textContent?.split(" — ").slice(1).join(" — ") || "Data confirmada" };
-    bookedThisSession.add(confirmedGira.id);
     reservationForm.reset();
     turnstileTokenForHomologation = null;
     if (window.turnstile?.reset) window.turnstile.reset();
@@ -261,7 +254,7 @@ reservationForm?.addEventListener("submit", async (event) => {
     if (preferentialDescription) preferentialDescription.required = false;
     if (configMessage) configMessage.textContent = "Sua solicitação foi confirmada.";
     if (turnstileStatus) turnstileStatus.textContent = "Verificação utilizada. Faça uma nova verificação para outra solicitação.";
-    showReservationWelcome(firstName, confirmedGira);
+    showReservationWelcome(firstName);
   } catch (error) {
     turnstileTokenForHomologation = null;
     if (window.turnstile?.reset) window.turnstile.reset();
@@ -275,7 +268,7 @@ reservationForm?.addEventListener("submit", async (event) => {
 
 
 // Mensagens acolhedoras após a confirmação da reserva, em duas etapas acessíveis.
-function showReservationWelcome(firstName, gira) {
+function showReservationWelcome(firstName) {
   const overlay = document.createElement("div");
   overlay.className = "welcome-overlay";
   overlay.setAttribute("role", "presentation");
@@ -299,7 +292,7 @@ function showReservationWelcome(firstName, gira) {
     greeting.id = "welcome-message";
     greeting.textContent = "Bem-vindo(a), " + firstName + "!";
     const instruction = document.createElement("p");
-    instruction.textContent = "Gira: " + (gira?.title || "—") + ". Data: " + (gira?.date || "—") + ". Os portões abrem às 18h30 e as senhas são distribuídas a partir desse horário.";
+    instruction.textContent = "Sua senha será entregue no portão, antes do início da Gira.";
     closeButton.onclick = showSecond;
     dialog.append(title, greeting, instruction, closeButton);
   };
