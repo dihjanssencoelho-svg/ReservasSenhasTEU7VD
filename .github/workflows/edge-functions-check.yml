@@ -132,6 +132,11 @@ jobs:
         run: |
           psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/reservation-flow.test.sql
 
+      - name: Testar duplicidade institucional entre sessões por e-mail e telefone
+        env:
+          LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+        run: psql "$LOCAL_DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/reservation-identity-session.test.sql
+
       - name: Auditar RLS e privilégios mínimos no banco local
         env:
           LOCAL_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
@@ -272,11 +277,14 @@ jobs:
 
       - name: Instalar Playwright e Chromium
         run: |
-          npm install --no-save playwright
+          npm install --no-save playwright axe-core
           npx playwright install chromium
 
       - name: Verificar código local de homologação no navegador
         run: node supabase/tests/browser-smoke.mjs
+
+      - name: Homologar acessibilidade e responsividade
+        run: node supabase/tests/accessibility-responsive-smoke.mjs
 
       - name: Confirmar formulário ativo na versão publicada do Pages
         shell: bash
