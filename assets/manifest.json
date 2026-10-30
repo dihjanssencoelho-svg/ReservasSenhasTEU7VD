@@ -1,0 +1,19 @@
+{
+  "assets": {
+    "pretos-velhos": "pretos-velhos.webp",
+    "caboclos": "caboclos.webp",
+    "malandros": "malandros.webp",
+    "pombagiras-exus": "pombagiras-exus.webp",
+    "pombagiras": "pombagiras.webp",
+    "exus": "exus.webp",
+    "marinheiros": "marinheiros.webp",
+    "eres": "eres.webp",
+    "baianos": "baianos.webp",
+    "boiadeiros": "boiadeiros.webp",
+    "exus-mirim-pombagiras-mirim": "exus-mirim-pombagiras-mirim.webp",
+    "ciganos": "ciganos.webp",
+    "cirurgia-espiritual": "cirurgia-espiritual.webp",
+    "gira-pet": "gira-pet.webp"
+  },
+  "matching": "titulo + tipo_gira normalizados; acentos ignorados; alias singular/plural"
+}

@@ -1,0 +1,4 @@
+/* Imagem de capa dos cards da agenda — não altera os demais componentes. */
+.gira-card-image { width:100%; aspect-ratio: 16 / 9; overflow:hidden; background:#211a18; }
+.gira-card-image img { display:block; width:100%; height:100%; object-fit:cover; object-position:center 35%; }
+.gira-card-image img[hidden] { display:none; }
