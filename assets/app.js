@@ -156,7 +156,7 @@ async function loadPublishedGiras() {
       const rule = giraImageRules.find(({ terms }) => terms.some(term =>
         (" " + haystack + " ").includes(" " + normalizeGiraName(term) + " ")
       ));
-      return rule ? "assets/giras/" + rule.key + ".webp" : null;
+      return rule ? "assets/" + rule.key + ".webp" : null;
     };
     const getGiraVisual = (gira) => {
       const imagePath = resolveGiraImage(gira);
