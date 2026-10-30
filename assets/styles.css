@@ -346,3 +346,10 @@ input, select, textarea { letter-spacing: 0; }
 .gira-art--pet { background: linear-gradient(135deg,#7aa5a0,#d5c18c 55%,#e8d7b4); }
 .gira-art--outras { background: linear-gradient(135deg,#49345d,#9676a9 55%,#d9c5df); }
 @media (max-width: 700px) { .gira-art { min-height: 116px; } .gira-art span { width: 82px; height: 82px; font-size: 2.9rem; } }
+
+/* Fotografias/ilustrações reais por linha da agenda. */
+.gira-card { padding: 0; overflow: hidden; }
+.gira-card-image { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #211a18; }
+.gira-card-image img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+.gira-card-content { padding: .9rem 1rem 1rem; }
+@media (max-width: 700px) { .gira-card-image { aspect-ratio: 16 / 9; } }
