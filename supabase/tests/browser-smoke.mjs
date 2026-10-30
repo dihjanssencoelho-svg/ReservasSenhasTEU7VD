@@ -123,13 +123,11 @@ try {
   assert.equal(createReservationRequests.length, 1, "O caminho positivo deve chamar criar-reserva uma única vez.");
   assert.equal(publicReservationPayload.nome_completo, "Mariana Teste");
   assert.equal(publicReservationPayload.gira_id, "123e4567-e89b-12d3-a456-426614174000");
-  await firstPopup.getByRole("button", { name: "OK" }).click();
-  const secondPopup = page.getByRole("dialog", { name: "🌟 Sejam muito bem-vindos a nossa casa 🌟" });
-  await secondPopup.waitFor();
-  await page.getByText(/doação de 1kg de alimento não perecível/, { exact: false }).waitFor();
-  await page.getByText(/cambone que lhe atender/, { exact: false }).waitFor();
-  await secondPopup.getByRole("button", { name: "Concluir" }).click();
-  await secondPopup.waitFor({ state: "detached" });
+  await page.getByText("🌟 Sejam muito bem-vindos a nossa casa 🌟", { exact: true }).waitFor();
+  await firstPopup.getByText(/doação de 1kg de alimento não perecível/, { exact: false }).waitFor();
+  await firstPopup.getByText(/cambone que lhe atender/, { exact: false }).waitFor();
+  await firstPopup.getByRole("button", { name: "Concluir" }).click();
+  await firstPopup.waitFor({ state: "detached" });
 
   assert.equal(await page.locator("#team-access").isHidden(), true, "A área restrita deveria iniciar fechada.");
   const accessToggle = page.locator("#team-access-toggle");
