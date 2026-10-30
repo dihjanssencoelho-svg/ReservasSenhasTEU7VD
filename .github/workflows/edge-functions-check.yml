@@ -334,6 +334,9 @@ jobs:
           node --check supabase/tests/turnstile-live-smoke.mjs
           node --check supabase/tests/admin-auth-live-smoke.mjs
 
+      - name: Validar Turnstile real sem criar reserva
+        run: node supabase/tests/turnstile-live-smoke.mjs
+
       - name: Teste HTTP positivo de administrador sem mutação (opcional)
         env:
           SUPABASE_URL: https://emwnytvlbpgiwqswojze.supabase.co
