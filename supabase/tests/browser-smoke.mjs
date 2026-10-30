@@ -119,7 +119,8 @@ try {
   const firstPopup = page.getByRole("dialog", { name: "Reserva Confirmada!" });
   await firstPopup.waitFor();
   await page.getByText("Bem-vindo(a), Mariana!", { exact: true }).waitFor();
-  await page.getByText("Gira: Gira de teste. Data: 15 de janeiro de 2027. Os portões abrem às 18h30 e as senhas são distribuídas a partir desse horário.", { exact: true }).waitFor();
+  const giraConfirmation = await firstPopup.locator("p").nth(1).innerText();
+  assert.match(giraConfirmation, /^Gira: Gira de teste[\s\S]*15 de janeiro de 2027[\s\S]*Os portões abrem às 18h30 e as senhas são distribuídas a partir desse horário\./, "A confirmação deve apresentar gira, data e horário de abertura dos portões.");
   assert.equal(createReservationRequests.length, 1, "O caminho positivo deve chamar criar-reserva uma única vez.");
   assert.equal(publicReservationPayload.nome_completo, "Mariana Teste");
   assert.equal(publicReservationPayload.gira_id, "123e4567-e89b-12d3-a456-426614174000");
