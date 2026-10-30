@@ -25,7 +25,7 @@
       <img class="portal-logo" src="https://dihjanssencoelho-svg.github.io/siteTEU7VD/assets/Logo%20TEU7VD.png" alt="Logo oficial do Templo Escola de Umbanda 7 Vibrações Divinas" width="120" height="114">
       <p class="eyebrow">Templo Escola de Umbanda 7 Vibrações Divinas</p>
       <h2>Reserva de Vagas</h2>
-      <p class="hero-help">Os campos marcados com <strong>*</strong> são obrigatórios.</p>
+      <p class="hero-help">Consulte as datas publicadas. Não há escolha de horário. Os campos marcados com <strong>*</strong> são obrigatórios.<br><strong>Orientação:</strong> os portões abrem às 18h30 e as senhas são distribuídas a partir desse horário.</p>
     </section>
 
     <section class="panel" aria-labelledby="giras-title">
@@ -46,12 +46,13 @@
     <section id="reservation-panel" class="panel form-panel" aria-labelledby="reservation-title" hidden>
       <p class="eyebrow">Cadastro de consulente</p>
       <h2 id="reservation-title">♙ Dados pessoais</h2>
-      <p class="muted">Selecione uma data disponível e preencha seus dados para solicitar a senha. A confirmação depende da disponibilidade de vagas e da validação de segurança.</p>
+      <p class="muted">Escolha uma das giras publicadas no calendário. O horário não é selecionável; a programação é definida pelo templo.</p>
       <form id="reservation-form" autocomplete="off">
         <label for="full-name">Nome completo <span class="required-mark">*</span></label>
         <input id="full-name" name="nome_completo" required maxlength="180" autocomplete="name" placeholder="Seu nome completo">
-        <label for="event">Data selecionada <span class="required-mark">*</span></label>
-        <select id="event" name="gira_id" required>
+        <label for="event-display">Gira selecionada <span class="required-mark">*</span></label>
+        <input id="event-display" type="text" readonly aria-readonly="true" placeholder="Escolha uma data no calendário">
+        <select id="event" name="gira_id" required class="visually-hidden-control" tabindex="-1" aria-hidden="true">
           <option value="">Carregando giras disponíveis…</option>
         </select>
         <label for="dob">Data de nascimento <span class="required-mark">*</span></label>
