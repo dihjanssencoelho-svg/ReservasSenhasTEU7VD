@@ -303,3 +303,8 @@ input, select, textarea { letter-spacing: 0; }
 
 /* Acessibilidade e clareza da experiência pública */
 .form-panel label{display:block;margin-top:.8rem}.form-panel input,.form-panel select,.form-panel textarea{width:100%;min-height:46px}.visually-hidden-control{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}.arrival-note{max-width:42rem;margin:.75rem auto 0;padding:.8rem 1rem;border-left:4px solid #8c2787;background:#fff;color:#35223b;border-radius:8px;line-height:1.55}.booked-by-me{border:2px solid #28754b;background:#f0faf4}.booked-label{color:#17623a;font-weight:800}:focus-visible{outline:3px solid #7b2b83!important;outline-offset:3px}@media(max-width:640px){.form-panel{padding:1rem}.giras-grid{grid-template-columns:1fr}}
+
+
+/* Contraste mínimo WCAG AA em textos pequenos da agenda. */
+.eyebrow { color: #76551f; }
+.gira-vacancies { color: #2f6b2f; }
