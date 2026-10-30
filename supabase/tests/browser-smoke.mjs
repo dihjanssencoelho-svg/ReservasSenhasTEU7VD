@@ -91,7 +91,7 @@ try {
   // Sem token Turnstile, mesmo um submit válido programático não deve chamar a Edge Function.
   await page.locator("#reservation-form").evaluate((form) => {
     form.querySelector("#full-name").value = "Pessoa de teste";
-    form.querySelector("#event").innerHTML = '<option value="123e4567-e89b-12d3-a456-426614174000">Gira de teste</option>';
+    form.querySelector("#event").innerHTML = '<option value="123e4567-e89b-12d3-a456-426614174000">Gira de teste — 15 de janeiro de 2027</option>';
     form.querySelector("#event").value = "123e4567-e89b-12d3-a456-426614174000";
     form.querySelector("#dob").value = "1990-04-12";
     form.querySelector("#phone").value = "11987654321";
