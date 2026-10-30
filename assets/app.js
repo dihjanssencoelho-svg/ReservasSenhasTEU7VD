@@ -276,7 +276,7 @@ reservationForm?.addEventListener("submit", async (event) => {
 });
 
 
-// Mensagens acolhedoras após a confirmação da reserva, em duas etapas acessíveis.
+// Mensagens acolhedoras exibidas juntas após a confirmação efetiva da reserva.
 function showReservationWelcome(firstName, gira) {
   const overlay = document.createElement("div");
   overlay.className = "welcome-overlay";
@@ -287,43 +287,30 @@ function showReservationWelcome(firstName, gira) {
   dialog.setAttribute("aria-modal", "true");
   dialog.setAttribute("aria-labelledby", "welcome-title");
   dialog.setAttribute("aria-describedby", "welcome-message");
+  const title = document.createElement("h2");
+  title.id = "welcome-title";
+  title.textContent = "Reserva Confirmada!";
+  const greeting = document.createElement("p");
+  greeting.className = "welcome-greeting";
+  greeting.id = "welcome-message";
+  greeting.textContent = "Bem-vindo(a), " + firstName + "!";
+  const giraInfo = document.createElement("p");
+  giraInfo.textContent = "Gira: " + (gira?.title || "—") + ". Data: " + (gira?.date || "—") + ". Os portões abrem às 18h30 e as senhas são distribuídas a partir desse horário.";
+  const welcomeTitle = document.createElement("h3");
+  welcomeTitle.textContent = "🌟 Sejam muito bem-vindos a nossa casa 🌟";
+  const donation = document.createElement("p");
+  donation.textContent = "Lembre-se: pedimos a doação de 1kg de alimento não perecível, que será destinado ao nosso projeto social. Vamos juntos levar amor e caridade a quem mais precisa!";
+  const returnInfo = document.createElement("p");
+  returnInfo.textContent = "Em caso de necessidade de retorno, você será marcado(a) diretamente no dia da gira pela entidade juntamente com o cambone que lhe atender. O cambone é o assistente da entidade que faz o atendimento.";
   const closeButton = document.createElement("button");
   closeButton.type = "button";
   closeButton.className = "welcome-ok";
-  closeButton.textContent = "OK";
-  const showFirst = () => {
-    dialog.replaceChildren();
-    const title = document.createElement("h2");
-    title.id = "welcome-title";
-    title.textContent = "Reserva Confirmada!";
-    const greeting = document.createElement("p");
-    greeting.className = "welcome-greeting";
-    greeting.id = "welcome-message";
-    greeting.textContent = "Bem-vindo(a), " + firstName + "!";
-    const instruction = document.createElement("p");
-    instruction.textContent = "Gira: " + (gira?.title || "—") + ". Data: " + (gira?.date || "—") + ". Os portões abrem às 18h30 e as senhas são distribuídas a partir desse horário.";
-    closeButton.onclick = showSecond;
-    dialog.append(title, greeting, instruction, closeButton);
-  };
-  const showSecond = () => {
-    dialog.replaceChildren();
-    const title = document.createElement("h2");
-    title.id = "welcome-title";
-    title.textContent = "🌟 Sejam muito bem-vindos a nossa casa 🌟";
-    const donation = document.createElement("p");
-    donation.id = "welcome-message";
-    donation.textContent = "Lembre-se: pedimos a doação de 1kg de alimento não perecível, que será destinado ao nosso projeto social. Vamos juntos levar amor e caridade a quem mais precisa!";
-    const returnInfo = document.createElement("p");
-    returnInfo.textContent = "Em caso de necessidade de retorno, você será marcado(a) diretamente no dia da gira pela entidade juntamente com o cambone que lhe atender. O cambone é o assistente da entidade que faz o atendimento.";
-    closeButton.onclick = () => overlay.remove();
-    closeButton.textContent = "Concluir";
-    dialog.append(title, donation, returnInfo, closeButton);
-    title.focus?.();
-  };
+  closeButton.textContent = "Concluir";
+  closeButton.addEventListener("click", () => overlay.remove());
   overlay.addEventListener("click", event => { if (event.target === overlay) return; });
+  dialog.append(title, greeting, giraInfo, welcomeTitle, donation, returnInfo, closeButton);
   overlay.append(dialog);
   document.body.append(overlay);
-  showFirst();
   closeButton.focus();
 }
 
