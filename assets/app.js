@@ -131,26 +131,39 @@ async function loadPublishedGiras() {
     }
 
     girasList.className = "giras-grid";
-    const giraVisuals = [
-      { match: /pret[oa]s?\s*velh/i, icon: "🧓", theme: "pretos-velhos", label: "Arquétipo de Preto Velho" },
-      { match: /cabocl/i, icon: "🏹", theme: "caboclos", label: "Caboclo indígena em meio à natureza" },
-      { match: /malandr/i, icon: "🎩", theme: "malandros", label: "Arquétipo de Malandro" },
-      { match: /pombagira.*ex[uú]|ex[uú].*pombagira/i, icon: "🌹", theme: "pombagiras-exus", label: "Pombagiras e Exús" },
-      { match: /pombagira/i, icon: "🌹", theme: "pombagiras", label: "Arquétipo de Pombagira" },
-      { match: /ex[uú]/i, icon: "🔥", theme: "exus", label: "Arquétipo de Exú" },
-      { match: /marinheir/i, icon: "⚓", theme: "marinheiros", label: "Marinheiro e elementos do mar" },
-      { match: /er[eê]/i, icon: "🧸", theme: "eres", label: "Erês e infância" },
-      { match: /baian/i, icon: "🌵", theme: "baianos", label: "Arquétipo de Baiano" },
-      { match: /boiadeir/i, icon: "🤠", theme: "boiadeiros", label: "Boiadeiro e vida no campo" },
-      { match: /mirim/i, icon: "✨", theme: "mirins", label: "Exú Mirim e Pombagira Mirim" },
-      { match: /cigan/i, icon: "💃", theme: "ciganos", label: "Ciganos e sua cultura" },
-      { match: /cirurgia\s*espiritual/i, icon: "🕊️", theme: "cirurgia-espiritual", label: "Cirurgia espiritual" },
-      { match: /pet/i, icon: "🐾", theme: "pet", label: "Gira Pet" }
+    // Associação estável por categoria: tolera acentos, plural e mudanças no título do card.
+    const normalizeGiraName = (value = "") => String(value)
+      .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const giraImageRules = [
+      { key: "pombagiras-exus", terms: ["pombagiras e exus", "pombagira e exu", "exus e pombagiras", "exu e pombagira"] },
+      { key: "exus-mirim-pombagiras-mirim", terms: ["exu mirim", "exus mirins", "pombagira mirim", "pombagiras mirins"] },
+      { key: "pretos-velhos", terms: ["preto velho", "pretos velhos", "preta velha", "pretas velhas"] },
+      { key: "caboclos", terms: ["caboclo", "caboclos", "cabocla", "caboclas"] },
+      { key: "malandros", terms: ["malandro", "malandros", "malandra", "malandras"] },
+      { key: "pombagiras", terms: ["pombagira", "pombagiras"] },
+      { key: "exus", terms: ["exu", "exus"] },
+      { key: "marinheiros", terms: ["marinheiro", "marinheiros"] },
+      { key: "eres", terms: ["ere", "eres", "criancas", "linha das criancas"] },
+      { key: "baianos", terms: ["baiano", "baianos", "baiana", "baianas"] },
+      { key: "boiadeiros", terms: ["boiadeiro", "boiadeiros", "boiadeira", "boiadeiras"] },
+      { key: "ciganos", terms: ["cigano", "ciganos", "cigana", "ciganas"] },
+      { key: "cirurgia-espiritual", terms: ["cirurgia espiritual", "cirurgias espirituais"] },
+      { key: "gira-pet", terms: ["gira pet", "giras pet", "pet"] }
     ];
+    const resolveGiraImage = (gira) => {
+      const haystack = normalizeGiraName(String(gira.titulo || "") + " " + String(gira.tipo_gira || ""));
+      const rule = giraImageRules.find(({ terms }) => terms.some(term =>
+        (" " + haystack + " ").includes(" " + normalizeGiraName(term) + " ")
+      ));
+      return rule ? "assets/" + rule.key + ".webp" : null;
+    };
     const getGiraVisual = (gira) => {
-      const source = (String(gira.titulo || "") + " " + String(gira.tipo_gira || "")).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      const visual = giraVisuals.find(item => item.match.test(source)) || { icon: "🪷", theme: "outras", label: "Gira do TEU7VD" };
-      return '<div class="gira-art gira-art--' + visual.theme + '" role="img" aria-label="' + escapeHtml(visual.label) + '"><span aria-hidden="true">' + visual.icon + '</span></div>';
+      const imagePath = resolveGiraImage(gira);
+      const label = "Representação da linha " + String(gira.titulo || "de trabalho");
+      return imagePath
+        ? '<div class="gira-card-image"><img src="' + imagePath + '" alt="' + escapeHtml(label) + '" loading="lazy" decoding="async"></div>'
+        : '<div class="gira-art gira-art--outras" role="img" aria-label="Gira do TEU7VD"><span aria-hidden="true">🪷</span></div>';
     };
     girasList.innerHTML = giras.map((gira) => {
       const vagas = Number.isInteger(gira.limite_vagas) ? gira.limite_vagas : null;
