@@ -334,6 +334,8 @@ jobs:
           node --check supabase/tests/turnstile-live-smoke.mjs
           node --check supabase/tests/admin-auth-live-smoke.mjs
 
+      # A validação positiva do widget é confirmada manualmente no navegador.
+      # O Chromium headless do runner não conclui o desafio Cloudflare; não simular nem contornar o token.
       - name: Teste HTTP positivo de administrador sem mutação (opcional)
         env:
           SUPABASE_URL: https://emwnytvlbpgiwqswojze.supabase.co
