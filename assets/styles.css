@@ -300,3 +300,10 @@ h1, h2, h3, h4, .brand-name, .nav-link, label, button, .eyebrow {
 h1, h2, h3, h4 { letter-spacing: -.025em; }
 label { letter-spacing: -.01em; }
 input, select, textarea { letter-spacing: 0; }
+
+/* Imagens reais por linha nos cards da agenda. */
+.gira-card { padding: 0; overflow: hidden; }
+.gira-card-image { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; background: #211a18; }
+.gira-card-image img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; }
+.gira-card-content { padding: .9rem 1rem 1rem; }
+@media (max-width: 700px) { .gira-card-image { aspect-ratio: 16 / 9; } }
