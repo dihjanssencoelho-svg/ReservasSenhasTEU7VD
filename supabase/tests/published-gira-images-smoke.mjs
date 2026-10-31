@@ -28,7 +28,7 @@ try {
   assert.ok(scriptSrc.includes("?v=" + appVersion), "HTML publicado deve referenciar a versão nova do app.js.");
   assert.ok(cards.length > 0, "Agenda pública deve carregar ao menos um card.");
   const knownLines = ["caboclo", "preto velho", "malandro", "pombagira", "exu", "marinheiro", "ere", "crianca", "baiano", "boiadeiro", "cigano", "cirurgia espiritual", "gira pet"];
-  const normalize = value => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+  const normalize = value => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const mappedCards = cards.map((card, index) => ({ ...card, index, normalized: normalize(card.title + " " + card.type) }))
     .filter(card => knownLines.some(term => card.normalized.includes(term)));
   assert.ok(mappedCards.length > 0, "Agenda precisa incluir ao menos uma linha com imagem cadastrada.");
