@@ -1,0 +1,29 @@
+name: Validate deployed gira images
+on:
+  push:
+    branches: [preparacao-homologacao]
+  pull_request:
+    branches: [preparacao-homologacao]
+permissions:
+  contents: read
+jobs:
+  gira-images:
+    name: Render public gira images
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save playwright
+          npx playwright install chromium
+      - name: Test real public card fields against local assets
+        run: node supabase/tests/gira-images-smoke.mjs
+      - name: Verify actual published agenda cards
+        if: github.event_name == 'push'
+        run: node supabase/tests/published-gira-images-smoke.mjs
