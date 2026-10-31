@@ -130,6 +130,40 @@ async function loadPublishedGiras() {
     }
 
     girasList.className = "giras-grid";
+    // Imagem vinculada à linha de trabalho, não ao texto exato do título.
+    const normalizeGiraName = (value = "") => String(value)
+      .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+      .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+    const giraImageRules = [
+      { key: "pombagiras-exus", terms: ["pombagiras e exus", "pombagira e exu", "exus e pombagiras", "exu e pombagira"] },
+      { key: "exus-mirim-pombagiras-mirim", terms: ["exu mirim", "exus mirins", "pombagira mirim", "pombagiras mirins"] },
+      { key: "pretos-velhos", terms: ["preto velho", "pretos velhos", "preta velha", "pretas velhas"] },
+      { key: "caboclos", terms: ["caboclo", "caboclos", "cabocla", "caboclas"] },
+      { key: "malandros", terms: ["malandro", "malandros", "malandra", "malandras"] },
+      { key: "pombagiras", terms: ["pombagira", "pombagiras"] },
+      { key: "exus", terms: ["exu", "exus"] },
+      { key: "marinheiros", terms: ["marinheiro", "marinheiros"] },
+      { key: "eres", terms: ["ere", "eres", "criancas", "linha das criancas"] },
+      { key: "baianos", terms: ["baiano", "baianos", "baiana", "baianas"] },
+      { key: "boiadeiros", terms: ["boiadeiro", "boiadeiros", "boiadeira", "boiadeiras"] },
+      { key: "ciganos", terms: ["cigano", "ciganos", "cigana", "ciganas"] },
+      { key: "cirurgia-espiritual", terms: ["cirurgia espiritual", "cirurgias espirituais"] },
+      { key: "gira-pet", terms: ["gira pet", "giras pet", "pet"] }
+    ];
+    const resolveGiraImage = (gira) => {
+      const haystack = normalizeGiraName(String(gira.titulo || "") + " " + String(gira.tipo_gira || ""));
+      const rule = giraImageRules.find(({ terms }) => terms.some(term =>
+        (" " + haystack + " ").includes(" " + normalizeGiraName(term) + " ")
+      ));
+      return rule ? "assets/" + rule.key + ".webp" : null;
+    };
+    const getGiraVisual = (gira) => {
+      const imagePath = resolveGiraImage(gira);
+      const label = "Representação da linha " + String(gira.titulo || "de trabalho");
+      return imagePath
+        ? '<div class="gira-card-image"><img src="' + imagePath + '" alt="' + escapeHtml(label) + '" loading="lazy" decoding="async"></div>'
+        : "";
+    };
     girasList.innerHTML = giras.map((gira) => {
       const vagas = Number.isInteger(gira.limite_vagas) ? gira.limite_vagas : null;
       const metric = vacancyByGira.get(gira.id);
@@ -139,11 +173,12 @@ async function loadPublishedGiras() {
           metric.vagas_restantes + " vaga(s) restante(s)") + " · " + metric.ocupacao_percentual + "% ocupadas"
         : (vagas === null ? "Vagas a confirmar" : escapeHtml(vagas) + " vagas previstas");
       const vacancyClass = metric && metric.poucas_vagas ? "gira-vacancies low-vacancy" : "gira-vacancies";
-      return '<article class="gira-card" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-label="Selecionar ' + escapeHtml(gira.titulo) + ' e abrir o formulário"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
+      return '<article class="gira-card" data-gira-id="' + escapeHtml(gira.id) + '" tabindex="0" role="button" aria-controls="reservation-panel" aria-expanded="false" aria-label="Selecionar ' + escapeHtml(gira.titulo) + ' e abrir o formulário">' +
+        getGiraVisual(gira) + '<div class="gira-card-content"><p class="eyebrow">' + escapeHtml(formatDate(gira.data_gira)) +
         '</p><h3>' + escapeHtml(gira.titulo) + '</h3>' +
         (gira.tipo_gira ? '<p class="muted">' + escapeHtml(gira.tipo_gira) + '</p>' : '') +
         '<p class="' + vacancyClass + '">' + escapeHtml(vacancyText) + '</p>' +
-        '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></article>';
+        '<p class="small muted">Selecione esta gira no formulário para solicitar uma reserva.</p></div></article>';
     }).join("");
     const selectGira = (card) => {
       const eventSelect = document.getElementById("event");
