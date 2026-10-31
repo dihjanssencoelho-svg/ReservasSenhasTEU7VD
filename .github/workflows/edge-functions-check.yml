@@ -279,6 +279,9 @@ jobs:
 
       - name: Verificar código local de homologação no navegador
         run: node supabase/tests/browser-smoke.mjs
+      - name: Verify images in the published public agenda
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: node supabase/tests/published-gira-images-smoke.mjs
 
       - name: Confirmar formulário ativo na versão publicada do Pages
         shell: bash
