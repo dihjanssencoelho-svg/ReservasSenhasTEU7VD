@@ -40,7 +40,7 @@ try {
     "caboclo", "preto velho", "malandro", "pombagira", "exu", "marinheiro",
     "ere", "crianca", "baiano", "boiadeiro", "cigano", "cirurgia espiritual", "gira pet"
   ];
-  const normalize = value => value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "").toLowerCase();
+  const normalize = value => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   const mappedCards = cards
     .map((card, index) => ({ ...card, index, normalized: normalize(card.title + " " + card.type) }))
     .filter(card => knownLines.some(term => card.normalized.includes(term)));
