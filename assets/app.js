@@ -147,9 +147,30 @@ async function loadPublishedGiras() {
       { match: /cirurgia\s*espiritual/i, icon: "🕊️", theme: "cirurgia-espiritual", label: "Cirurgia espiritual" },
       { match: /pet/i, icon: "🐾", theme: "pet", label: "Gira Pet" }
     ];
+    const giraImageByTheme = {
+      "pretos-velhos": "pretos-velhos",
+      caboclos: "caboclos",
+      malandros: "malandros",
+      "pombagiras-exus": "pombagiras-exus",
+      pombagiras: "pombagiras",
+      exus: "exus",
+      marinheiros: "marinheiros",
+      eres: "eres",
+      baianos: "baianos",
+      boiadeiros: "boiadeiros",
+      mirins: "exus-mirim-pombagiras-mirim",
+      ciganos: "ciganos",
+      "cirurgia-espiritual": "cirurgia-espiritual",
+      pet: "gira-pet"
+    };
     const getGiraVisual = (gira) => {
       const source = (String(gira.titulo || "") + " " + String(gira.tipo_gira || "")).normalize("NFD").replace(/[\u0300-\u036f]/g, "");
       const visual = giraVisuals.find(item => item.match.test(source)) || { icon: "🪷", theme: "outras", label: "Gira do TEU7VD" };
+      const imageKey = giraImageByTheme[visual.theme];
+      if (imageKey) {
+        const label = "Representação da linha " + String(gira.titulo || visual.label);
+        return '<div class="gira-card-image"><img src="assets/' + imageKey + '.webp" alt="' + escapeHtml(label) + '" loading="lazy" decoding="async"></div>';
+      }
       return '<div class="gira-art gira-art--' + visual.theme + '" role="img" aria-label="' + escapeHtml(visual.label) + '"><span aria-hidden="true">' + visual.icon + '</span></div>';
     };
     girasList.innerHTML = giras.map((gira) => {
