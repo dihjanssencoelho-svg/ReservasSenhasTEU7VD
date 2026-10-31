@@ -132,7 +132,7 @@ async function loadPublishedGiras() {
     girasList.className = "giras-grid";
     // Imagem vinculada à linha de trabalho, não ao texto exato do título.
     const normalizeGiraName = (value = "") => String(value)
-      .normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
       .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
     const giraImageRules = [
       { key: "pombagiras-exus", terms: ["pombagiras e exus", "pombagira e exu", "exus e pombagiras", "exu e pombagira"] },
