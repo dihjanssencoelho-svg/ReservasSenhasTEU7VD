@@ -5,7 +5,7 @@ import { readFile } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 
 const root = resolve(".");
-const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8" };
+const mime = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".webp": "image/webp" };
 const server = createServer(async (req, res) => {
   try {
     const pathname = decodeURIComponent(new URL(req.url, "http://127.0.0.1").pathname);
@@ -38,7 +38,7 @@ try {
     if (requestUrl.pathname === "/rest/v1/perfis_admin") {
       return json([{ user_id: "123e4567-e89b-12d3-a456-426614174000", papel: "admin", ativo: true }]);
     }
-    if (requestUrl.pathname === "/rest/v1/giras") return json([{ id: "123e4567-e89b-12d3-a456-426614174000", titulo: "Gira de teste", data_gira: "2027-01-15", limite_vagas: 20, tipo_gira: "Caboclos" }]);
+    if (requestUrl.pathname === "/rest/v1/giras") return json([{ id: "123e4567-e89b-12d3-a456-426614174000", titulo: "Gira de teste", data_gira: "2027-01-15", limite_vagas: 20, tipo_gira: "Caboclos" }, { id: "223e4567-e89b-12d3-a456-426614174000", titulo: "Gira de Erês", data_gira: "2027-01-22", limite_vagas: 20, tipo_gira: "Erês" }]);
     if (requestUrl.pathname === "/rest/v1/rpc/teu7vd_resumo_vagas_publico") return json([]);
     if (requestUrl.pathname === "/rest/v1/configuracoes_portal") {
       return json([{ mensagem_publica: "Mensagem de teste", mensagem_confirmacao: "Confirmação de teste", cor_primaria: "#17131e", cor_destaque: "#c9a86a", limite_alerta_vagas: 5 }]);
@@ -75,7 +75,14 @@ try {
   assert.equal(response.status(), 200, "O portal local não respondeu HTTP 200.");
   await page.getByRole("heading", { name: "Reserva de Vagas" }).waitFor();
   assert.equal(await page.locator("#reservation-panel").isHidden(), true, "O formulário deve aguardar a seleção de uma gira.");
-  await page.locator(".gira-card").click();
+  const giraCards = page.locator(".gira-card");
+  await giraCards.first().waitFor();
+  assert.equal(await giraCards.count(), 2, "As duas giras simuladas devem ser exibidas.");
+  assert.equal(await giraCards.nth(0).locator(".gira-card-image img").getAttribute("src"), "assets/caboclos.webp", "A categoria Caboclos deve selecionar a imagem correspondente.");
+  assert.equal(await giraCards.nth(1).locator(".gira-card-image img").getAttribute("src"), "assets/eres.webp", "A categoria acentuada Erês deve ser normalizada e selecionar sua imagem.");
+  await giraCards.nth(0).locator(".gira-card-image img").evaluate(img => img.decode());
+  assert.equal(await giraCards.nth(0).locator(".gira-card-image img").evaluate(img => img.naturalWidth > 0), true, "A imagem WebP do card deve carregar sem erro.");
+  await giraCards.first().click();
   assert.equal(await page.locator("#reservation-panel").isVisible(), true, "Selecionar um card deve abrir o formulário.");
   assert.equal(await page.locator("#event").inputValue(), "123e4567-e89b-12d3-a456-426614174000");
   assert.equal(await page.locator("#full-name").evaluate(el => document.activeElement === el), true, "O foco deve ir para o primeiro campo após escolher a gira.");
